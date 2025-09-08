@@ -1,0 +1,25 @@
+/* Font Face Declarations */
+@font-face {
+    font-family: 'Poppins';
+    src: url('./fonts/Poppins-Light.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Prata';
+    src: url('./fonts/Prata-Regular.ttf') format('truetype');
+    font-weight: bold;
+    font-style: 700;
+    font-display: swap;
+}
+/* If you have multiple weights or styles, add them like this:
+@font-face {
+    font-family: 'YourFontName';
+    src: url('./fonts/your-font-bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+*/ 
