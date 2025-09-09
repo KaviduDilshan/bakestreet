@@ -284,6 +284,11 @@ const total = computed(() => subtotal.value * 0.9);
 const formatPrice = (val) =>
   Number(val).toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const payNow = (order) => {
+  const query = new URLSearchParams({order}).toString();
+  window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?${query}`;
+};
+
 // Submit order when Total button is clicked
 const submitOrder = async () => {
   if (!products.value.length) {
@@ -300,6 +305,13 @@ const submitOrder = async () => {
     });
 
     if (response.data.success) {
+
+      /// REDIRECT TO PAYHERE AFTER ORDER SAVE INTO DB
+
+      payNow(orderCode)
+
+      // END - REDIRECT TO PAYHERE
+
       localStorage.removeItem("cart"); // clear cart
       products.value = [];
       router.push("/paymentsuccessfull"); // redirect

@@ -49,7 +49,7 @@
         <div class="flex justify-between font-semibold text-lg mt-4 border-t border-[#EEEEEE] pt-4">
           <span>Total</span><span>Rs.{{ formatPrice(total) }}</span>
         </div>
-
+        
         <router-link to="/checkout">
           <button class="w-full mt-6 bg-secondary text-white py-2 rounded font-medium hover:bg-red-700 transition">
             PROCEED TO CHECKOUT
@@ -82,4 +82,5 @@ const decreaseQty = (i)=>{ if(products.value[i].quantity>1){products.value[i].qu
 const removeItem = (i)=>{ products.value.splice(i,1); updateCart(); }
 
 const formatPrice = (val) => Number(val).toLocaleString("en-LK",{minimumFractionDigits:2,maximumFractionDigits:2});
+
 </script>
