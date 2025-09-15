@@ -105,6 +105,8 @@
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "../services/api.js";
+import { decryptId} from "../utils/crypto.js";
+
 
 const route = useRoute();
 const router = useRouter();
@@ -178,7 +180,13 @@ watch(() => route.params.id, async id => {
   relatedProducts.value = [];
 
   try {
-    const res = await api.get(`items/${id}`);
+    const realId = decryptId(id);  // <--- DECRYPT HERE
+    if (!realId) {
+      console.error("Invalid product ID");
+      return;
+    }
+
+    const res = await api.get(`items/${realId}`);
     product.value = res.data;
 
     // Auto-select first variation
@@ -195,6 +203,7 @@ watch(() => route.params.id, async id => {
   } finally { loading.value = false; }
 }, { immediate: true });
 
+
 // Computed selected variation names
 const selectedVariationNames = computed(() => {
   if(!product.value || !selectedVariations.value) return [];
@@ -210,6 +219,7 @@ const selectedVariationNames = computed(() => {
   });
   return [...new Set(names)];
 });
+
 
 function addToCartSession() {
   if(currentStock.value <= 0) return;
@@ -253,8 +263,6 @@ function addToCartSession() {
   localStorage.setItem("cart", JSON.stringify(cart));
   router.push({ name: "cart" });
 }
-
-
 
 // Navigate to related product
 function goToProduct(itemId) {

@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.7",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
+    "crypto-js": "^4.2.0",
     "gsap": "^3.13.0",
     "leaflet": "^1.9.4",
     "node-fetch": "^3.3.2",

@@ -23,27 +23,36 @@ import ResetView from "../views/account/ResetAccView.vue";
 import AccountDetailsView from "../views/account/AccountDetailsView.vue";
 import { isAuthenticated } from "../utils/authUtils.js";
 
-// Authentication guard function
+// // Authentication guard function
+// function requireAuth(to, from, next) {
+//   if (isAuthenticated()) {
+//     // User is authenticated, allow access
+//     next();
+//   } else {
+//     // User is not authenticated, redirect to login
+//     next("/login");
+//   }
+// }
+
+// // Guest guard function (for login/register pages)
+// function requireGuest(to, from, next) {
+//   if (isAuthenticated()) {
+//     // User is already authenticated, redirect to profile
+//     next("/profile");
+//   } else {
+//     // User is not authenticated, allow access to login/register
+//     next();
+//   }
+// }
+
 function requireAuth(to, from, next) {
-  if (isAuthenticated()) {
-    // User is authenticated, allow access
-    next();
-  } else {
-    // User is not authenticated, redirect to login
-    next("/login");
-  }
+  next(); // always allow
 }
 
-// Guest guard function (for login/register pages)
 function requireGuest(to, from, next) {
-  if (isAuthenticated()) {
-    // User is already authenticated, redirect to profile
-    next("/profile");
-  } else {
-    // User is not authenticated, allow access to login/register
-    next();
-  }
+  next(); // always allow
 }
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -247,27 +256,27 @@ const router = createRouter({
   },
 });
 
-// Global navigation guard to check authentication on every route change
-router.beforeEach((to, from, next) => {
-  const authenticated = isAuthenticated();
+// // Global navigation guard to check authentication on every route change
+// router.beforeEach((to, from, next) => {
+//   const authenticated = isAuthenticated();
 
-  // If user is authenticated and trying to access login/register pages, redirect to profile
-  if (authenticated && (to.name === "login" || to.name === "account")) {
-    next("/profile");
-    return;
-  }
+//   // If user is authenticated and trying to access login/register pages, redirect to profile
+//   if (authenticated && (to.name === "login" || to.name === "account")) {
+//     next("/profile");
+//     return;
+//   }
 
-  // If user is not authenticated and trying to access protected routes, redirect to login
-  if (!authenticated) {
-    const protectedRoutes = ["profile", "wishlist"];
-    if (protectedRoutes.includes(to.name)) {
-      next("/login");
-      return;
-    }
-  }
+//   // If user is not authenticated and trying to access protected routes, redirect to login
+//   if (!authenticated) {
+//     const protectedRoutes = ["profile", "wishlist"];
+//     if (protectedRoutes.includes(to.name)) {
+//       next("/login");
+//       return;
+//     }
+//   }
 
-  next();
-});
+//   next();
+// });
 
 router.afterEach((to) => {
   if (to.meta.title) {

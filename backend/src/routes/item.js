@@ -3,8 +3,75 @@ import pool from "../config/db.js";
 
 const router = express.Router();
 
-// Express endpoint
+// GET /items/search?q=keyword
+router.get("/items/search", async (req, res) => {
+  const { q } = req.query; // Get the search query string
+  if (!q || !q.trim()) {
+    return res.json([]);
+  }
+  try {
+    const result = await pool.query(
+      `SELECT item_id, item_name, item_short_description, item_image_1
+       FROM e_pos_item
+       WHERE item_name ILIKE $1 OR item_short_description ILIKE $1
+       LIMIT 20`,
+      [`%${q}%`]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error searching items:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+// most-sold-items
 router.get("/most-sold-items", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      WITH sales_by_variant AS (
+        SELECT 
+          s.item_prid,
+          SUM(s.sales_row_qty) AS total_sold
+        FROM e_pos_sales_row s
+        GROUP BY s.item_prid
+      ),
+      ranked_variants AS (
+        SELECT 
+          i.item_id,
+          i.item_name,
+          i.item_image_1,
+          p.item_prid,
+          p.item_sell AS latest_price,
+          p.item_stock AS total_count,   -- <-- Include stock here
+          COALESCE(sv.total_sold,0) AS total_sold,
+          ROW_NUMBER() OVER (PARTITION BY i.item_id ORDER BY COALESCE(sv.total_sold,0) DESC) AS rn
+        FROM e_pos_item_price p
+        LEFT JOIN sales_by_variant sv ON sv.item_prid = p.item_prid
+        JOIN e_pos_item i ON p.item_id = i.item_id
+      )
+      SELECT 
+        item_id,
+        item_name,
+        item_image_1,
+        item_prid,
+        latest_price,
+        total_count,
+        total_sold
+      FROM ranked_variants
+      WHERE rn = 1
+      ORDER BY total_sold DESC
+      LIMIT 10;
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching most sold items:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+// top selling
+router.get("/top-selling", async (req, res) => {
   try {
     const result = await pool.query(`
       WITH sales_by_variant AS (
@@ -114,6 +181,7 @@ router.get("/items/:id", async (req, res) => {
         p.item_sell,
         p.item_cost,
         p.item_stock,
+        p.branch_id,
         p.item_discount_per,
         p.item_discount_val,
         a.attribute_id,
@@ -128,7 +196,7 @@ router.get("/items/:id", async (req, res) => {
       LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
       LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
       LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
-      WHERE i.item_id = $1
+      WHERE i.item_id = $1 AND p.branch_id = 1
       ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
     `, [id]);
 
@@ -210,6 +278,7 @@ router.get("/products/related/:subcategoryId/:productId", async (req, res) => {
         i.item_name,
         i.item_image_1,
         i.scategory_id,
+        i.item_short_description,
         b.brand_name,
         MIN(p.item_sell) AS min_price,
         MAX(p.item_sell) AS max_price
@@ -233,34 +302,5 @@ router.get("/products/related/:subcategoryId/:productId", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
-// Search items by name/description
-router.get("/items/search", async (req, res) => {
-  const { q } = req.query; // ?q=keyword
-  if (!q || !q.trim()) return res.json([]);
-
-  try {
-    const result = await pool.query(
-      `SELECT 
-         i.item_id,
-         i.item_name,
-         i.item_image_1,
-         i.item_short_description,
-         b.brand_name
-       FROM e_pos_item i
-       LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
-       WHERE i.item_name ILIKE $1 OR i.item_short_description ILIKE $1
-       ORDER BY i.item_id ASC
-       LIMIT 20`,
-      [`%${q}%`]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error searching items:", err);
-    res.status(500).send("Server error");
-  }
-});
-
 
 export default router;

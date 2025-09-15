@@ -29,14 +29,12 @@
             </template>
           </div>
 
-          <button :class="[
-            'text-white text-[15px] rounded-lg font-semibold w-full py-2 transition',
-            item.stock > 0
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-gray-400 cursor-not-allowed'
-          ]" :disabled="item.stock <= 0" @click="$router.push(`/product/${item.item_id}`)">
-            {{ item.stock > 0 ? 'Add To Cart' : 'Out of Stock' }}
+          <button
+            class="bg-green-600 hover:bg-green-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
+            @click="$router.push(`/product/${encryptId(item.item_id)}`)">
+            Add To Cart
           </button>
+
         </div>
       </div>
 
@@ -74,7 +72,7 @@
 
               <button
                 class="bg-green-600 hover:bg-green-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
-                @click="$router.push(`/product/${item.item_id}`)">
+                @click="$router.push(`/product/${encryptId(item.item_id)}`)">
                 Add To Cart
               </button>
 
@@ -106,6 +104,7 @@ import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { decryptId, encryptId } from "../utils/crypto.js";
 
 const route = useRoute();
 const product = ref(null);
@@ -137,26 +136,38 @@ watch(
   () => route.params.id,
   async (id) => {
     if (!id) return;
+
     try {
-      const res = await api.get(`items/${id}`);
+      // Decrypt product ID
+      const realId = decryptId(id);
+      if (!realId) {
+        console.error("Invalid product ID");
+        return;
+      }
+
+      // Fetch main product
+      const res = await api.get(`items/${realId}`);
       product.value = res.data;
 
-      if (product.value.scategory_id) {
-        const relatedRes = await api.get(
-          `products/related/${product.value.scategory_id}/${product.value.item_id}`
-        );
+      // Determine subcategory
+      const subcatId = product.value.subcategory_id || product.value.scategory_id;
+      if (subcatId) {
+        // Fetch related products
+        const relatedRes = await api.get(`products/related/${subcatId}/${product.value.item_id}`);
+        console.log("Related products:", relatedRes.data);
 
         relatedProducts.value = relatedRes.data.map((p) => ({
           item_id: p.item_id,
+          encryptedId: encryptId(p.item_id), // Use for routing
           desc: p.item_name,
           brand: p.brand_name,
           img: p.item_image_1,
           price: p.min_price || 0,
-          rating: 4, // placeholder
+          rating: 4,
         }));
       }
     } catch (err) {
-      console.error("Error fetching product:", err);
+      console.error("Error fetching product or related products:", err);
     }
   },
   { immediate: true }
@@ -169,6 +180,7 @@ function formatPrice(value) {
   });
 }
 </script>
+
 
 <style>
 .related-swiper-pagination {

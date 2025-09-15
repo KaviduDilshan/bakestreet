@@ -3,7 +3,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import pool from "../config/db.js";
 import jwt from "jsonwebtoken";
-import fetch from "node-fetch"; // use fetch for API call
+import fetch from "node-fetch"; 
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -12,17 +12,30 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_key";
 const JWT_EXPIRES_IN = "7d";
 
-const otpStore = new Map(); // temporary store
+// Temporary OTP store
+const otpStore = new Map(); 
 
 // Normalize phone number to 947XXXXXXXX format
 function normalizePhone(phoneNumber) {
-  const trimmed = phoneNumber.trim();
-  if (trimmed.startsWith("+94")) return trimmed.replace("+", "");
+  let trimmed = phoneNumber.trim();
+
+  // If starts with +94 or 94
+  if (trimmed.startsWith("+94")) return trimmed.slice(1); // remove '+'
+  if (trimmed.startsWith("94")) return trimmed;           // already correct
+
+  // If starts with 0, replace with 94
   if (trimmed.startsWith("0")) return `94${trimmed.slice(1)}`;
+
+  // If user entered 7XXXXXXXX (9 digits only)
+  if (/^[0-9]{9}$/.test(trimmed) && trimmed.startsWith("7")) {
+    return `94${trimmed}`;
+  }
+
   return trimmed;
 }
 
-// Send OTP for registration
+
+// -------------------- SEND OTP --------------------
 router.post("/customers/send-otp", async (req, res) => {
   try {
     const { phoneNumber, firstName, lastName, password } = req.body;
@@ -31,7 +44,7 @@ router.post("/customers/send-otp", async (req, res) => {
 
     const normalizedPhone = normalizePhone(phoneNumber);
 
-    // Check if user already exists
+    // Check if user exists
     const exists = await pool.query(
       "SELECT customer_id FROM e_pos_customers WHERE user_username=$1 AND active=true AND archived=false",
       [normalizedPhone]
@@ -39,7 +52,7 @@ router.post("/customers/send-otp", async (req, res) => {
     if (exists.rows.length)
       return res.status(400).json({ isSuccess: false, message: "Phone number already registered" });
 
-    // Generate OTP
+    // Generate 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
     // Store OTP temporarily
@@ -48,27 +61,40 @@ router.post("/customers/send-otp", async (req, res) => {
       firstName,
       lastName,
       password,
-      expires: Date.now() + 5 * 60 * 1000, // 5 min expiry
+      expires: Date.now() + 5 * 60 * 1000, // 5 min
     });
 
-    // Send SMS via smsapi.lk
-    // Send SMS via smsapi.lk
-const smsUrl = `https://dashboard.smsapi.lk/api/v3/sms/send?user_id=${process.env.SMSAPI_KEY.split('|')[0]}&api_key=${process.env.SMSAPI_KEY.split('|')[1]}&sender_id=${process.env.SMSAPI_SENDER}&to=${normalizedPhone}&message=${encodeURIComponent(`Your OTP is ${otp}`)}`;
+    // -------------------- SMSAPI.LK POST --------------------
+    const smsApiUrl = "https://dashboard.smsapi.lk/api/v3/sms/send";
+    const smsResponse = await fetch(smsApiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.SMSAPI_KEY}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        recipient: normalizedPhone,
+        sender_id: process.env.SMSAPI_SENDER,
+        type: "plain",
+        message: `Your OTP is ${otp}`,
+      }),
+    });
 
-const response = await fetch(smsUrl);
-const data = await response.json();
+    const smsData = await smsResponse.json();
+    if (smsData.status !== "success") {
+      console.error("SMSAPI Error:", smsData);
+      return res.status(500).json({ isSuccess: false, message: "Failed to send OTP", details: smsData });
+    }
 
-if (data.status !== "success") {
-  return res.status(500).json({ isSuccess: false, message: "Failed to send OTP", details: data });
-}
     res.json({ isSuccess: true, message: "OTP sent successfully" });
   } catch (err) {
-    console.error("SMSAPI error:", err);
+    console.error("Send OTP error:", err);
     res.status(500).json({ isSuccess: false, message: "Failed to send OTP" });
   }
 });
 
-// Verify OTP and register user
+// -------------------- VERIFY OTP --------------------
 router.post("/customers/verify-otp", async (req, res) => {
   try {
     const { phoneNumber, otp } = req.body;
@@ -94,7 +120,7 @@ router.post("/customers/verify-otp", async (req, res) => {
 
     otpStore.delete(normalizedPhone);
 
-    // Generate JWT
+    // Generate JWT token
     const token = jwt.sign(
       { customer_id: result.rows[0].customer_id, phone: normalizedPhone },
       JWT_SECRET,
@@ -108,22 +134,23 @@ router.post("/customers/verify-otp", async (req, res) => {
       value: result.rows[0],
     });
   } catch (err) {
-    console.error(err);
+    console.error("Verify OTP error:", err);
     res.status(500).json({ isSuccess: false, message: "Failed to verify OTP" });
   }
 });
 
-// Login
+// -------------------- LOGIN --------------------
 router.post("/customers/login", async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
     if (!phoneNumber || !password)
       return res.status(400).json({ isSuccess: false, message: "Phone and password required" });
 
-    const normalizedPhone = normalizePhone(phoneNumber);
+   const normalizedPhone = normalizePhone(phoneNumber);  // ✅
+
 
     const result = await pool.query(
-      `SELECT * FROM e_pos_customers WHERE user_username=$1 AND active=true AND archived=false`,
+      `SELECT * FROM e_pos_customers WHERE user_username=$1`,
       [normalizedPhone]
     );
     if (!result.rows.length)
@@ -147,7 +174,7 @@ router.post("/customers/login", async (req, res) => {
       customer,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Login error:", err);
     res.status(500).json({ isSuccess: false, message: "Server error" });
   }
 });
