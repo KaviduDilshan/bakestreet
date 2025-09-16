@@ -24,7 +24,7 @@ router.get("/items/search", async (req, res) => {
   }
 });
 
-// most-sold-items
+// GET /api/most-sold-items
 router.get("/most-sold-items", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -42,79 +42,44 @@ router.get("/most-sold-items", async (req, res) => {
           i.item_image_1,
           p.item_prid,
           p.item_sell AS latest_price,
-          p.item_stock AS total_count,   -- <-- Include stock here
-          COALESCE(sv.total_sold,0) AS total_sold,
+          COALESCE(sv.total_sold, 0) AS total_sold,
           ROW_NUMBER() OVER (PARTITION BY i.item_id ORDER BY COALESCE(sv.total_sold,0) DESC) AS rn
         FROM e_pos_item_price p
         LEFT JOIN sales_by_variant sv ON sv.item_prid = p.item_prid
         JOIN e_pos_item i ON p.item_id = i.item_id
-      )
-      SELECT 
-        item_id,
-        item_name,
-        item_image_1,
-        item_prid,
-        latest_price,
-        total_count,
-        total_sold
-      FROM ranked_variants
-      WHERE rn = 1
-      ORDER BY total_sold DESC
-      LIMIT 10;
-    `);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching most sold items:", err);
-    res.status(500).send("Server error");
-  }
-});
-
-// top selling
-router.get("/top-selling", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      WITH sales_by_variant AS (
-        SELECT 
-          s.item_prid,
-          SUM(s.sales_row_qty) AS total_sold
-        FROM e_pos_sales_row s
-        GROUP BY s.item_prid
       ),
-      ranked_variants AS (
+      price_range AS (
         SELECT 
-          i.item_id,
-          i.item_name,
-          i.item_image_1,
-          p.item_prid,
-          p.item_sell AS latest_price,
-          p.item_stock AS total_count,   -- <-- Include stock here
-          COALESCE(sv.total_sold,0) AS total_sold,
-          ROW_NUMBER() OVER (PARTITION BY i.item_id ORDER BY COALESCE(sv.total_sold,0) DESC) AS rn
-        FROM e_pos_item_price p
-        LEFT JOIN sales_by_variant sv ON sv.item_prid = p.item_prid
-        JOIN e_pos_item i ON p.item_id = i.item_id
+          item_id,
+          MIN(item_sell) AS min_price,
+          MAX(item_sell) AS max_price
+        FROM e_pos_item_price
+        GROUP BY item_id
       )
       SELECT 
-        item_id,
-        item_name,
-        item_image_1,
-        item_prid,
-        latest_price,
-        total_count,
-        total_sold
-      FROM ranked_variants
-      WHERE rn = 1
-      ORDER BY total_sold DESC
+        rv.item_id,
+        rv.item_name,
+        rv.item_image_1,
+        rv.item_prid,
+        rv.latest_price,
+        rv.total_sold,
+        pr.min_price,
+        pr.max_price
+      FROM ranked_variants rv
+      JOIN price_range pr ON pr.item_id = rv.item_id
+      WHERE rv.rn = 1
+      ORDER BY rv.total_sold DESC
       LIMIT 10;
     `);
 
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching most sold items:", err);
+    console.error("Error fetching top deals:", err);
     res.status(500).send("Server error");
   }
 });
+
+
 
 // shop all item (without price)
 router.get("/items-with-brand", async (req, res) => {
@@ -302,5 +267,38 @@ router.get("/products/related/:subcategoryId/:productId", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// ✅ Get featured items with brand and min/max prices
+router.get("/featured-items", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        i.item_id,
+        i.item_name,
+        i.item_image_1,
+        i.mcategory_id,
+        i.item_feature,
+        COALESCE(prices.min_price, 0) AS min_price,
+        COALESCE(prices.max_price, 0) AS max_price
+      FROM e_pos_item i
+      LEFT JOIN (
+        SELECT 
+          item_id, 
+          MIN(item_sell) AS min_price, 
+          MAX(item_sell) AS max_price
+        FROM e_pos_item_price
+        GROUP BY item_id
+      ) prices ON i.item_id = prices.item_id
+      WHERE i.item_feature = 1
+      ORDER BY i.item_id ASC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching featured items:", err);
+    res.status(500).send("Server error");
+  }
+});
+
 
 export default router;

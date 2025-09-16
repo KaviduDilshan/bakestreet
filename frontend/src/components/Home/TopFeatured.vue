@@ -57,11 +57,11 @@
         </div>
       </div>
 
-      <!-- Right side  -->
+      <!-- Right side -->
       <div
         class="w-full lg:w-[680px] flex flex-col items-center relative lg:px-0 md:px-10 px-5"
       >
-        <!--  buttons -->
+        <!-- buttons -->
         <button
           ref="prevElRef"
           class="swiper-button-prev-custom absolute top-0 lg:left-[620px] left-[300px] md:left-[730px] z-20 w-8 h-8 flex items-center justify-center"
@@ -101,35 +101,33 @@
           </svg>
         </button>
 
+        <!-- Swiper -->
         <Swiper
           :modules="[Navigation]"
           :slides-per-view="1"
           :navigation="{ nextEl: nextElRef, prevEl: prevElRef }"
           class="w-full md:mt-10 mt-4"
         >
-          <SwiperSlide
-            v-for="(group, idx) in groupedProducts"
-            :key="idx"
-          >
+          <SwiperSlide v-for="(group, idx) in groupedProducts" :key="idx">
             <div
               class="grid lg:grid-cols-2 md:grid-cols-2 grid-cols-1 md:gap-x-8 md:gap-y-8 gap-x-4 gap-y-4"
             >
               <div
-                v-for="(product, i) in group"
-                :key="i"
+                v-for="product in group"
+                :key="product.item_id"
                 class="flex items-center p-4"
               >
                 <img
-                  :src="product.img"
+                  :src="product.item_image_1"
                   alt="Product"
                   class="w-20 h-20 object-contain mr-4"
                 />
                 <div>
                   <div class="text-sm font-medium mb-1">
-                    {{ product.title }}
+                    {{ product.item_name }}
                   </div>
                   <div class="text-lg font-bold text-text-primary mb-2">
-                    Rs. {{ product.price }}
+                    Rs.{{ product.min_price }}-{{ product.max_price }}
                   </div>
                   <button
                     class="bg-secondary text-white px-4 py-2 rounded-md font-semibold hover:bg-primary transition text-sm whitespace-nowrap"
@@ -157,31 +155,33 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div
-          v-for="(product, i) in products.slice(0, 4)"
-          :key="i"
+          v-for="product in products.slice(0, 4)"
+          :key="product.item_id"
           class="p-2 flex flex-col items-center text-center"
         >
           <img
-            :src="product.img"
+            :src="product.item_image_1"
             alt="Product"
             class="mb-2 w-24 h-20 object-contain"
           />
           <p class="text-sm text-[#4C4C4C] leading-tight mb-1">
-            {{ product.title }}
+            {{ product.item_name }}
           </p>
 
           <!-- Rating Stars -->
           <div class="flex justify-center gap-0.5 text-yellow-400 my-2">
-            <span
-              v-for="star in 5"
-              :key="star"
-              >★</span
-            >
+            <span v-for="star in 5" :key="star">★</span>
           </div>
 
           <!-- Price -->
           <p class="text-text-color font-bold text-base mb-2">
-            Rs. {{ product.price }}
+            Rs. {{ product.min_price }}
+            <span
+              v-if="product.max_price && product.max_price !== product.min_price"
+              class="text-[#B8B8B8] line-through text-sm ml-2"
+            >
+              Rs. {{ product.max_price }}
+            </span>
           </p>
 
           <!-- Add to Cart Button -->
@@ -197,51 +197,31 @@
 </template>
 
 <script setup>
-  import { ref } from "vue";
-  import { Swiper, SwiperSlide } from "swiper/vue";
-  import { Navigation } from "swiper/modules";
+import { ref, onMounted } from "vue";
+import { Swiper, SwiperSlide } from "swiper/vue";
+import { Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+import api from "../../services/api.js";
 
-  import "swiper/css";
-  import "swiper/css/navigation";
+const nextElRef = ref(null);
+const prevElRef = ref(null);
 
-  import img1 from "../../assets/home/pencilCase.png";
-  import img2 from "../../assets/home/pen.png";
-  import img3 from "../../assets/home/earbudsnew.png";
-  import img4 from "../../assets/home/book.png";
+const products = ref([]);
+const groupedProducts = ref([]);
 
-  const nextElRef = ref(null);
-  const prevElRef = ref(null);
+onMounted(async () => {
+  try {
+    const { data } = await api.get("/featured-items"); // adjust API URL
+    products.value = data;
 
-  const products = [
-    {
-      img: img1,
-      title: "Lorem ipsum dolor sit amet, consectetur",
-      price: "450000.00",
-    },
-    {
-      img: img2,
-      title: "Lorem ipsum dolor sit amet, consectetur",
-      price: "450000.00",
-    },
-    {
-      img: img3,
-      title: "Lorem ipsum dolor sit amet, consectetur",
-      price: "450000.00",
-    },
-    {
-      img: img4,
-      title: "Lorem ipsum dolor sit amet, consectetur",
-      price: "450000.00",
-    },
-    { img: img1, title: "Another product", price: "450000.00" },
-    { img: img2, title: "Another product", price: "450000.00" },
-    { img: img3, title: "Another product", price: "450000.00" },
-    { img: img4, title: "Another product", price: "450000.00" },
-  ];
-
-  // Group products into chunks of 4
-  const groupedProducts = [];
-  for (let i = 0; i < products.length; i += 4) {
-    groupedProducts.push(products.slice(i, i + 4));
+    // Group products into chunks of 4
+    groupedProducts.value = [];
+    for (let i = 0; i < products.value.length; i += 4) {
+      groupedProducts.value.push(products.value.slice(i, i + 4));
+    }
+  } catch (err) {
+    console.error("Error fetching featured items:", err);
   }
+});
 </script>

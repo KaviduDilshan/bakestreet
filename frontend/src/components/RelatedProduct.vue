@@ -71,7 +71,7 @@
               </div>
 
               <button
-                class="bg-green-600 hover:bg-green-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
+                class="bg-red-600 hover:bg-gray-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
                 @click="$router.push(`/product/${encryptId(item.item_id)}`)">
                 Add To Cart
               </button>
