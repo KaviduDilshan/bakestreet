@@ -28,8 +28,8 @@
         >
           {{ errorMessage }}
         </div>
-
-        <form @submit.prevent="handleSubmit">
+        <!--  -->
+        <form @submit.prevent="handleSubmit(userInfo.value)">
           <div class="full-name grid lg:grid-cols-2 gap-2">
             <div class="mb-4">
               <label
@@ -151,17 +151,14 @@
               />
             </div>
           </div>
-
+          <!-- @click="customerUpdate(userInfo)" -->
           <div class="mb-4">
             <button
               type="submit"
               :disabled="isLoading"
               class="w-full mt-5 py-4 px-4 bg-[#D22245] text-white font-semibold hover:bg-[#00512F] uppercase font-poppins rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              <span
-                v-if="isLoading"
-                class="mr-2"
-              >
+              <span v-if="isLoading" class="mr-2">
                 <svg
                   class="animate-spin h-5 w-5 text-white"
                   xmlns="http://www.w3.org/2000/svg"
@@ -193,157 +190,239 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from "vue";
-  import { useRouter } from "vue-router";
-  import { useAuth } from "../../composables/useAuth.js";
-  import { customerUpdate, customerGet } from "../../services/customer.js";
-  import AccountNav from "../account/AccountNav.vue";
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuth } from "../../composables/useAuth.js";
+import AccountNav from "../account/AccountNav.vue";
+import api from "../../services/api.js";
 
-  const router = useRouter();
-  const { user, logout: authLogout, initAuth, setAuth } = useAuth();
+const router = useRouter();
+const {
+  user,
+  logout: authLogout,
+  initAuth,
+  setAuth,
+  getAuthData,
+  fetchUserById,
+} = useAuth();
 
-  // Reactive data
-  const userInfo = ref({
-    user_first_name: "",
-    user_last_name: "",
-    user_contact: "",
-    address_street: "",
-    address_city: "",
-    address_state: "",
-    address_zip: "",
-    address_country: "",
-  });
-  const isLoading = ref(false);
-  const successMessage = ref("");
-  const errorMessage = ref("");
+// Reactive data
+const userInfo = ref({
+  token: "",
+  user_id: "",
+  user_first_name: "",
+  user_last_name: "",
+  user_contact: "",
+  address_street: "",
+  address_city: "",
+  address_state: "",
+  address_zip: "",
+  address_country: "",
+});
+const isLoading = ref(false);
+const successMessage = ref("");
+const errorMessage = ref("");
 
-  const logout = () => {
-    authLogout();
-  };
+const logout = () => {
+  authLogout();
+};
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    // Clear previous messages
-    successMessage.value = "";
-    errorMessage.value = "";
+const handleSubmit = async (updateData) => {
+  successMessage.value = "";
+  errorMessage.value = "";
 
-    // Validate required fields
-    if (!userInfo.value.user_first_name || !userInfo.value.user_last_name) {
-      errorMessage.value = "First name and last name are required.";
-      return;
-    }
+  // Validate required fields
+  if (!userInfo.value.user_first_name || !userInfo.value.user_last_name) {
+    errorMessage.value = "First name and last name are required.";
+    return;
+  }
 
+  try {
     isLoading.value = true;
+    
+    const response = await api.put(`/customers/update/${userInfo.value.user_id}`, {
+      firstName: userInfo.value.user_first_name,
+      lastName: userInfo.value.user_last_name,
+      addressStreet: userInfo.value.address_street,
+      addressCity: userInfo.value.address_city,
+      addressState: userInfo.value.address_state,
+      addressZip: userInfo.value.address_zip,
+      addressCountry: userInfo.value.address_country,
+    });
 
-    // Prepare update data with default empty strings for address fields
-    const updateData = {
-      user_first_name: userInfo.value.user_first_name,
-      user_last_name: userInfo.value.user_last_name,
-      user_contact: userInfo.value.user_contact || "",
-      address_street: userInfo.value.address_street || "",
-      address_city: userInfo.value.address_city || "",
-      address_state: userInfo.value.address_state || "",
-      address_zip: userInfo.value.address_zip || "",
-      address_country: userInfo.value.address_country || "",
-    };
+    console.log("Update success:", response.data);
+    successMessage.value =
+      "Your account details have been updated successfully.";
+    return response.data;
+  } catch (error) {
+    console.error("Update failed:", error.response?.data || error.message);
+    errorMessage.value =
+      error.response?.data?.message ||
+      "An error occurred while updating your details. Please try again.";
+    throw error;
+  } finally {
+    isLoading.value = false;
+  }
+};
 
+onMounted(async () => {
+  // Initialize authentication state
+  initAuth();
+
+  const authData = getAuthData();
+
+  if (authData && authData.customerId) {
     try {
-      const response = await customerUpdate.update(updateData);
+      // Fetch full user details
+      const customer = await fetchUserById(authData.customerId);
+      console.log("Fetched Customer:", customer);
 
-      if (response.isSuccess) {
-        successMessage.value = "Account details updated successfully!";
-
-        // Update the user object with all the updated fields including address
-        const updatedUser = {
-          ...user.value,
-          first_name: userInfo.value.user_first_name,
-          last_name: userInfo.value.user_last_name,
-          contact: userInfo.value.user_contact,
-          // Include address fields in the user object
-          address_street: userInfo.value.address_street,
-          address_city: userInfo.value.address_city,
-          address_state: userInfo.value.address_state,
-          address_zip: userInfo.value.address_zip,
-          address_country: userInfo.value.address_country,
-        };
-
-        // Update auth state with new user data
-        setAuth({
-          access_token: localStorage.getItem("access_token"),
-          refresh_token: localStorage.getItem("refresh_token"),
-          user: updatedUser,
-        });
-
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          successMessage.value = "";
-        }, 3000);
-      } else {
-        errorMessage.value =
-          response.message || "Failed to update account details.";
-      }
-    } catch (error) {
-      console.error("Update error:", error);
-      errorMessage.value =
-        error.response?.data?.message ||
-        "An error occurred while updating your details. Please try again.";
-    } finally {
-      isLoading.value = false;
-    }
-  };
-  const getCustomer = async () => {
-    try {
-      const response = await customerGet.get();
-
-      if (response.isSuccess && response.value) {
-        // Ensure response.value is an object to prevent errors
-        const responseData =
-          typeof response.value === "object" && response.value !== null
-            ? response.value
-            : {};
-
-        // Safely merge the response data with existing userInfo
-        // This ensures we don't overwrite existing values with undefined
+      if (customer) {
         userInfo.value = {
-          ...userInfo.value,
-          user_first_name:
-            responseData.user_first_name ||
-            userInfo.value.user_first_name ||
-            "",
-          user_last_name:
-            responseData.user_last_name || userInfo.value.user_last_name || "",
-          user_contact:
-            responseData.user_contact || userInfo.value.user_contact || "",
-          address_street:
-            responseData.address_street || userInfo.value.address_street || "",
-          address_city:
-            responseData.address_city || userInfo.value.address_city || "",
-          address_state:
-            responseData.address_state || userInfo.value.address_state || "",
-          address_zip:
-            responseData.address_zip || userInfo.value.address_zip || "",
-          address_country:
-            responseData.address_country ||
-            userInfo.value.address_country ||
-            "",
+          token: authData.token,
+          user_id: customer.customer_id || "",
+          user_first_name: customer.user_first_name || "",
+          user_last_name: customer.user_last_name || "",
+          user_contact: customer.user_contact || "",
+          address_street: customer.address_street || "",
+          address_city: customer.address_city || "",
+          address_state: customer.address_state || "",
+          address_zip: customer.address_zip || "",
+          address_country: customer.address_country || "",
         };
       }
     } catch (error) {
-      console.error("Get error:", error);
-      errorMessage.value =
-        error.response?.data?.message ||
-        "An error occurred while fetching your details. Please try again.";
-    }
-  };
-
-  onMounted(async () => {
-    initAuth();
-
-    if (!user.value) {
+      console.error("Error fetching customer:", error);
       router.push("/login");
-      return;
     }
-    // First try to get customer data from API
-    await getCustomer();
-  });
+  } else {
+    // If no user data, redirect to login
+    router.push("/login");
+  }
+});
+
+// // Handle form submission
+// const handleSubmit = async () => {
+//   // Clear previous messages
+//   successMessage.value = "";
+//   errorMessage.value = "";
+
+//   // Validate required fields
+//   if (!userInfo.value.user_first_name || !userInfo.value.user_last_name) {
+//     errorMessage.value = "First name and last name are required.";
+//     return;
+//   }
+
+//   isLoading.value = true;
+
+//   // Prepare update data with default empty strings for address fields
+//   const updateData = {
+//     user_first_name: userInfo.value.user_first_name,
+//     user_last_name: userInfo.value.user_last_name,
+//     user_contact: userInfo.value.user_contact || "",
+//     address_street: userInfo.value.address_street || "",
+//     address_city: userInfo.value.address_city || "",
+//     address_state: userInfo.value.address_state || "",
+//     address_zip: userInfo.value.address_zip || "",
+//     address_country: userInfo.value.address_country || "",
+//   };
+
+//   try {
+//     const response = await customerUpdate.update(updateData);
+
+//     if (response.isSuccess) {
+//       successMessage.value = "Account details updated successfully!";
+
+//       // Update the user object with all the updated fields including address
+//       const updatedUser = {
+//         ...user.value,
+//         first_name: userInfo.value.user_first_name,
+//         last_name: userInfo.value.user_last_name,
+//         contact: userInfo.value.user_contact,
+//         // Include address fields in the user object
+//         address_street: userInfo.value.address_street,
+//         address_city: userInfo.value.address_city,
+//         address_state: userInfo.value.address_state,
+//         address_zip: userInfo.value.address_zip,
+//         address_country: userInfo.value.address_country,
+//       };
+
+//       // Update auth state with new user data
+//       setAuth({
+//         access_token: localStorage.getItem("access_token"),
+//         refresh_token: localStorage.getItem("refresh_token"),
+//         user: updatedUser,
+//       });
+
+//       // Clear success message after 3 seconds
+//       setTimeout(() => {
+//         successMessage.value = "";
+//       }, 3000);
+//     } else {
+//       errorMessage.value =
+//         response.message || "Failed to update account details.";
+//     }
+//   } catch (error) {
+//     console.error("Update error:", error);
+//     errorMessage.value =
+//       error.response?.data?.message ||
+//       "An error occurred while updating your details. Please try again.";
+//   } finally {
+//     isLoading.value = false;
+//   }
+// };
+// const getCustomer = async () => {
+//   try {
+//     const response = await customerGet.get();
+
+//     if (response.isSuccess && response.value) {
+//       // Ensure response.value is an object to prevent errors
+//       const responseData =
+//         typeof response.value === "object" && response.value !== null
+//           ? response.value
+//           : {};
+
+//       // Safely merge the response data with existing userInfo
+//       // This ensures we don't overwrite existing values with undefined
+//       userInfo.value = {
+//         ...userInfo.value,
+//         user_first_name:
+//           responseData.user_first_name ||
+//           userInfo.value.user_first_name ||
+//           "",
+//         user_last_name:
+//           responseData.user_last_name || userInfo.value.user_last_name || "",
+//         user_contact:
+//           responseData.user_contact || userInfo.value.user_contact || "",
+//         address_street:
+//           responseData.address_street || userInfo.value.address_street || "",
+//         address_city:
+//           responseData.address_city || userInfo.value.address_city || "",
+//         address_state:
+//           responseData.address_state || userInfo.value.address_state || "",
+//         address_zip:
+//           responseData.address_zip || userInfo.value.address_zip || "",
+//         address_country:
+//           responseData.address_country ||
+//           userInfo.value.address_country ||
+//           "",
+//       };
+//     }
+//   } catch (error) {
+//     console.error("Get error:", error);
+//     errorMessage.value =
+//       error.response?.data?.message ||
+//       "An error occurred while fetching your details. Please try again.";
+//   }
+// };
+
+// Customer update service
+// const customerUpdate = async (userData) => {
+//   try {
+//     const response = await api.put(`/customers/update/${userData.id}`, userData);
+//     return response.data;
+//   } catch (error) {
+//     throw error;
+//   }
+// }
 </script>

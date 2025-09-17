@@ -184,8 +184,8 @@ async function onSubmit() {
       password: password.value,
     });
 
-    if (response.data.isSuccess && response.data.token) {
-      setAuth(response.data.token); // Save JWT to composable/localStorage
+    if (response.data.isSuccess && response.data) {
+      setAuth(response.data); // Save JWT to composable/localStorage
       router.push("/profile");
     } else {
       errorMessage.value = response.data.message || "Login failed. Please check your credentials.";

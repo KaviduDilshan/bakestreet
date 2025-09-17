@@ -14,8 +14,7 @@
       <AccountNav />
       <div class="md:col-span-4 py-4 md:pr-[100px]">
         <div class="font-quicksand font-[700] text-[15px] text-[#000000]">
-          Hello {{ userInfo.user_first_name || "User" }} (not
-          {{ userInfo.user_first_name || "User" }}?
+          Hello {{ userInfo.user_first_name + " " + userInfo.user_last_name || "User" }}  - do you want to
           <span
             @click="logout"
             class="text-secondary cursor-pointer hover:underline"
@@ -49,6 +48,14 @@
                 >{{ userInfo.user_id || "N/A" }}</span
               >
             </div> -->
+
+<!-- 
+            "created_at": "2025-09-15T09:17:38.188Z",
+        "user_lastlogin": "2025-09-15T03:47:38.188Z",
+        
+ -->
+
+
             <div class="flex">
               <span
                 class="font-quicksand font-[600] text-[14px] text-[#666] w-24"
@@ -56,7 +63,27 @@
               >
               <span
                 class="font-quicksand font-[500] text-[14px] text-[#000000]"
-                >{{ userInfo.username || "N/A" }}</span
+                >{{ userInfo.user_username || "N/A" }}</span
+              >
+            </div>
+            <div class="flex">
+              <span
+                class="font-quicksand font-[600] text-[14px] text-[#666] w-24"
+                >Create at:</span
+              >
+              <span
+                class="font-quicksand font-[500] text-[14px] text-[#000000]"
+                >{{ userInfo.created_at || "N/A" }}</span
+              >
+            </div>
+            <div class="flex">
+              <span
+                class="font-quicksand font-[600] text-[14px] text-[#666] w-24"
+                >Last login:</span
+              >
+              <span
+                class="font-quicksand font-[500] text-[14px] text-[#000000]"
+                >{{ userInfo.user_lastlogin || "N/A" }}</span
               >
             </div>
             <!-- <div class="flex">
@@ -83,23 +110,41 @@
   import AccountNav from "../account/AccountNav.vue";
 
   const router = useRouter();
-  const { user, logout: authLogout, initAuth } = useAuth();
+  const { user, logout: authLogout, initAuth , getAuthData, fetchUserById } = useAuth();
   const userInfo = ref({});
+
+  // console.log('Decoded JWT:', { userInfo.customerId });
 
   const logout = () => {
     authLogout();
-  };
+    router.push("/login");
+  }; 
 
-  onMounted(() => {
-    // Initialize authentication state
-    initAuth();
+  onMounted(async () => {
+  // Initialize authentication state
+  initAuth();
 
-    // Set user info from the composable
-    if (user.value) {
-      userInfo.value = user.value;
-    } else {
-      // If no user data, redirect to login
+  const authData = getAuthData();
+
+  if (authData && authData.customerId) {
+    try {
+      // Fetch full user details
+      const customer = await fetchUserById(authData.customerId);
+      console.log("Fetched Customer:", customer);
+
+      if (customer) {
+        userInfo.value = {
+          token: authData.token,
+          ...customer, // spread full user info from API
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching customer:", error);
       router.push("/login");
     }
-  });
+  } else {
+    // If no user data, redirect to login
+    router.push("/login");
+  }
+});
 </script>
