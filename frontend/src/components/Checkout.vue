@@ -243,7 +243,7 @@
             <input
               type="text"
               placeholder="Phone"
-              v-model="billingDetails.phone"
+              v-model="billingDetails.contact"
               class="font-quicksand mt-5 font-[500] py-3 text-[12px] bg-white border border-[#494949]/70 rounded-[8px] text-[#818181] pl-3 w-full"
             />
             <input

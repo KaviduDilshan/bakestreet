@@ -65,11 +65,10 @@
               <!-- Sub-subcategories -->
               <ul v-if="expandedSub[sub.id] && sub.subsubcategories && sub.subsubcategories.length"
                 class="pl-4 text-xs space-y-1 text-gray-700">
-                <li v-for="ssub in sub.subsubcategories" :key="ssub.id"
-    class="cursor-pointer hover:text-primary"
-    @click.stop="selectedSubSubcategory = Number(ssub.id)">
-  {{ ssub.title }} (<span>{{ subSubcategoryCounts[Number(ssub.id)] || 0 }}</span>)
-</li>
+                <li v-for="ssub in sub.subsubcategories" :key="ssub.id" class="cursor-pointer hover:text-primary"
+                  @click.stop="selectedSubSubcategory = Number(ssub.id)">
+                  {{ ssub.title }} (<span>{{ subSubcategoryCounts[Number(ssub.id)] || 0 }}</span>)
+                </li>
 
               </ul>
 
@@ -193,18 +192,30 @@
 import { ref, computed, onMounted, watch } from "vue";
 import api from "../services/api.js";
 import { encryptId } from "../utils/crypto.js";
+import { useRoute } from "vue-router";
 
 
+const route = useRoute();
 
+// -------------------- Data --------------------
 const pros = ref([]);
 const isLoading = ref(true);
 const shopCategories = ref([]);
-const expanded = ref({});       // for main categories
-const expandedSub = ref({});    // for subcategories
+const expanded = ref({});       // main categories
+const expandedSub = ref({});    // subcategories
 const selectedSubcategory = ref(null);
 const selectedMainCategory = ref(null);
 const selectedSubSubcategory = ref(null);
+const product = ref(null);
 
+watch(() => route.query.category, (newCatId) => {
+  selectedMainCategory.value = newCatId ? Number(newCatId) : null;
+  // This line ensures the sidebar category expands
+  if (newCatId) {
+    Object.keys(expanded.value).forEach(id => expanded.value[id] = false);
+    expanded.value[Number(newCatId)] = true;
+  }
+}, { immediate: true });
 
 // -------------------- Price Slider --------------------
 const rangeData = ref({
@@ -236,7 +247,9 @@ const updateThumbs = () => {
     100;
 };
 
-// This is the updated filteredPros computed property
+
+
+// -------------------- Filtering --------------------
 const filteredPros = computed(() => {
   let products = pros.value;
   if (selectedMainCategory.value) {
@@ -245,14 +258,12 @@ const filteredPros = computed(() => {
   if (selectedSubcategory.value) {
     products = products.filter((i) => i.scategory_id === selectedSubcategory.value);
   }
-  
   if (selectedSubSubcategory.value) {
     products = products.filter((i) => i.spcategory_id === selectedSubSubcategory.value);
   }
   products = products.filter(
     (i) => i.max_price >= rangeData.value.minprice && i.min_price <= rangeData.value.maxprice
   );
-
   return products;
 });
 
@@ -270,13 +281,11 @@ const totalPages = computed(() =>
   Math.ceil(filteredPros.value.length / itemsPerPage)
 );
 
-// Reset page on filter change
 watch(filteredPros, () => {
   currentPage.value = 1;
 });
 
-
-// This is the updated SubcategoryCounts computed property
+// -------------------- Category Counts --------------------
 const categoryCounts = computed(() => {
   const counts = {};
   const items = selectedMainCategory.value
@@ -284,16 +293,12 @@ const categoryCounts = computed(() => {
     : pros.value;
 
   items.forEach((i) => {
-    if (i.scategory_id) {
-      counts[i.scategory_id] = (counts[i.scategory_id] || 0) + 1;
-    }
+    if (i.scategory_id) counts[i.scategory_id] = (counts[i.scategory_id] || 0) + 1;
   });
 
   return counts;
 });
 
-
-// This is the updated subSubcategoryCounts computed property
 const subSubcategoryCounts = computed(() => {
   const counts = {};
   const items = pros.value.filter(product => {
@@ -302,17 +307,14 @@ const subSubcategoryCounts = computed(() => {
     return isMainCatMatch && isSubCatMatch;
   });
 
-  // Now, count the sub-subcategories from this correctly filtered list
   items.forEach(product => {
-    if (product.spcategory_id) {
-      counts[product.spcategory_id] = (counts[product.spcategory_id] || 0) + 1;
-    }
+    if (product.spcategory_id) counts[product.spcategory_id] = (counts[product.spcategory_id] || 0) + 1;
   });
 
   return counts;
 });
 
-
+// -------------------- Results Text --------------------
 const resultsText = computed(() => {
   const total = selectedMainCategory.value
     ? pros.value.filter((i) => i.mcategory_id === selectedMainCategory.value).length
@@ -322,50 +324,29 @@ const resultsText = computed(() => {
   let categoryName = "All Items";
 
   if (selectedSubSubcategory.value) {
-    // Find the sub-subcategory name
-    const main = shopCategories.value.find(
-      (c) => c.id === selectedMainCategory.value
-    );
-    const sub = main?.subcategories.find(
-      (s) => s.id === selectedSubcategory.value
-    );
-    const ssub = sub?.subsubcategories.find(
-      (ss) => ss.id === selectedSubSubcategory.value
-    );
+    const main = shopCategories.value.find(c => c.id === selectedMainCategory.value);
+    const sub = main?.subcategories.find(s => s.id === selectedSubcategory.value);
+    const ssub = sub?.subsubcategories.find(ss => ss.id === selectedSubSubcategory.value);
     categoryName = ssub?.title || "Items";
   } else if (selectedSubcategory.value) {
-    // Find the subcategory name
-    const main = shopCategories.value.find(
-      (c) => c.id === selectedMainCategory.value
-    );
-    const sub = main?.subcategories.find(
-      (s) => s.id === selectedSubcategory.value
-    );
+    const main = shopCategories.value.find(c => c.id === selectedMainCategory.value);
+    const sub = main?.subcategories.find(s => s.id === selectedSubcategory.value);
     categoryName = sub?.title || "Items";
   } else if (selectedMainCategory.value) {
-    // Find the main category name
-    const main = shopCategories.value.find(
-      (c) => c.id === selectedMainCategory.value
-    );
+    const main = shopCategories.value.find(c => c.id === selectedMainCategory.value);
     categoryName = main?.title || "Items";
   }
 
   return `Showing ${showing} results from total ${total} “${categoryName}”`;
 });
 
-
-
 // -------------------- Sorting --------------------
 const sortOpen = ref(false);
-const sortOptions = [
-  "Popularity",
-  "Newest",
-  "Price: Low to High",
-  "Price: High to Low",
-];
+const sortOptions = ["Popularity", "Newest", "Price: Low to High", "Price: High to Low"];
 const selectedSort = ref(sortOptions[0]);
 const mobileSortOpen = ref(false);
 const selectedMobileSort = ref(sortOptions[0]);
+
 function selectSort(option) {
   selectedSort.value = option;
   sortOpen.value = false;
@@ -417,19 +398,18 @@ const fetchPrices = async () => {
   }
 };
 
-// Fetch product by ID
-onMounted(async () => {
-  const id = route.params.id;
+// -------------------- Fetch Product by ID --------------------
+const fetchProductById = async (id) => {
   try {
     const res = await api.get(`items/${id}`);
     product.value = res.data;
   } catch (err) {
     console.error("Error fetching product:", err);
   }
-});
+};
 
+// -------------------- Toggle Subcategory --------------------
 function toggleSub(subId) {
-  // Close other expanded subcategories if you want only one open at a time
   Object.keys(expandedSub.value).forEach((id) => {
     if (id != subId) expandedSub.value[id] = false;
   });
@@ -438,6 +418,9 @@ function toggleSub(subId) {
   selectedSubSubcategory.value = null;
 }
 
+// -------------------- Payment Order Handling --------------------
+const orderId = ref(null);
+const paymentStatus = ref(null);
 
 // -------------------- Init --------------------
 onMounted(async () => {
@@ -445,20 +428,15 @@ onMounted(async () => {
   await fetchItems();
   await fetchPrices();
   updateThumbs();
-});
 
-// -------------Use the order_id sent by PayHere to update your table----------
-const orderId = ref(null);
-const paymentStatus = ref(null);
+  if (route.query.category) {
+    selectedMainCategory.value = Number(route.query.category);
+  }
 
-onMounted(async () => {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("order_id");
-
   if (id) {
     orderId.value = id;
-
-    // Call backend to mark order as paid (if not already)
     try {
       const res = await api.post(`notify`, { order_id: id });
       paymentStatus.value = res.data.order_payment_status;
@@ -466,6 +444,9 @@ onMounted(async () => {
       console.error("Error updating order payment status:", err);
     }
   }
+
+  const productId = route.params.id;
+  if (productId) await fetchProductById(productId);
 });
 </script>
 
@@ -477,3 +458,4 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
 }
 </style>
+

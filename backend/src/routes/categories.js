@@ -33,14 +33,10 @@ router.get("/categories-all", async (req, res) => {
         m.mcategory_name,
         s1.scategory_id,
         s1.scategory_name,
-        s2.spcategory_id,
-        s2.spcategory_name
       FROM e_pos_item_maincategory m
       LEFT JOIN e_pos_item_subcategory_p1 s1
         ON s1.main_category_id = m.mcategory_id
-      LEFT JOIN e_pos_item_subcategory_p2 s2
-        ON s2.subcategory_p1_id = s1.scategory_id
-      ORDER BY m.mcategory_name, s1.scategory_name, s2.spcategory_name
+      ORDER BY m.mcategory_name, s1.scategory_name
     `);
 
     res.json(result.rows);
