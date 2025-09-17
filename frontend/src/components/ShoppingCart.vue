@@ -72,13 +72,7 @@ onMounted(() => {
 });
 
 // Update localStorage
-function updateCart() {
-  localStorage.setItem("cart", JSON.stringify(products.value));
-
-  // 🔔 Tell header cart count to refresh
-  window.dispatchEvent(new Event("cart-updated"));
-}
-
+function updateCart() { localStorage.setItem("cart", JSON.stringify(products.value)); }
 
 const subtotal = computed(() => products.value.reduce((sum, i)=>sum + i.price*i.quantity,0));
 const total = computed(() => subtotal.value*0.9); // 10% discount
