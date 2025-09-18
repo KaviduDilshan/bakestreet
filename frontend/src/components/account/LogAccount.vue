@@ -122,9 +122,11 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import api from "../../services/api.js";
 import { useAuth } from "../../composables/useAuth.js";
+import { login_register } from "../../services/login_register.js";
 
 const router = useRouter();
 const { setAuth } = useAuth();
+const { loginUser } = login_register();
 
 const phoneNumber = ref("");
 const password = ref("");
@@ -175,39 +177,52 @@ async function onSubmit() {
     return;
   }
 
-  isLoading.value = true;
+  let nextPath = localStorage.getItem("nextHiddenPath") || "/profile";
 
-  try {
-    // Send login request to backend
-    const response = await api.post("/customers/login", {
-      phoneNumber: phoneNumber.value,
-      password: password.value,
-    });
-
-    if (response.data.isSuccess && response.data) {
-      setAuth(response.data); // Save JWT to composable/localStorage
-      router.push("/profile");
-    } else {
-      errorMessage.value = response.data.message || "Login failed. Please check your credentials.";
-    }
-  } catch (error) {
-    console.error("Login error:", error);
-
-    if (error.response?.status === 401) {
-      errorMessage.value = "Invalid phone number or password";
-    } else if (error.response?.status === 404) {
-      errorMessage.value = "User not found";
-    } else if (error.response?.status === 403) {
-      errorMessage.value =
-        error.response?.data?.errorMessage?.message ||
-        "Access denied. Please try again.";
-    } else if (error.response?.data?.message) {
-      errorMessage.value = error.response.data.message;
-    } else {
-      errorMessage.value = "An error occurred during login. Please try again.";
-    }
-  } finally {
-    isLoading.value = false;
+  if (nextPath === "1") {
+    nextPath = "/profile";
+  } else if (nextPath === "2") {
+    nextPath = "/checkout";
   }
+  isLoading.value = true;
+  errorMessage.value = await loginUser(
+    phoneNumber.value,
+    password.value,
+    nextPath
+  );
+  isLoading.value = false;
+
+  // try {
+  //   // Send login request to backend
+  //   const response = await api.post("/customers/login", {
+  //     phoneNumber: phoneNumber.value,
+  //     password: password.value,
+  //   });
+
+  //   if (response.data.isSuccess && response.data) {
+  //     setAuth(response.data); // Save JWT to composable/localStorage
+  //     router.push("/profile");
+  //   } else {
+  //     errorMessage.value = response.data.message || "Login failed. Please check your credentials.";
+  //   }
+  // } catch (error) {
+  //   console.error("Login error:", error);
+
+  //   if (error.response?.status === 401) {
+  //     errorMessage.value = "Invalid phone number or password";
+  //   } else if (error.response?.status === 404) {
+  //     errorMessage.value = "User not found";
+  //   } else if (error.response?.status === 403) {
+  //     errorMessage.value =
+  //       error.response?.data?.errorMessage?.message ||
+  //       "Access denied. Please try again.";
+  //   } else if (error.response?.data?.message) {
+  //     errorMessage.value = error.response.data.message;
+  //   } else {
+  //     errorMessage.value = "An error occurred during login. Please try again.";
+  //   }
+  // } finally {
+  //   isLoading.value = false;
+  // }
 }
 </script>

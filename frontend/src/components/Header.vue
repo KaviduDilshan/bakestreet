@@ -15,20 +15,20 @@
 
       <!-- Auth -->
       <div v-if="!isAuth" class="flex gap-3">
-        <router-link to="/login">
-          <div class="font-[700] font-quicksand text-text-color text-[15px]">
+        <!-- <router-link to="/login"> -->
+          <div @click="goToLogin" class="font-[700] font-quicksand text-text-color text-[15px]">
             Login
           </div>
-        </router-link>
-        <div class="font-[700] font-quicksand text-text-color text-[15px]">/</div>
-        <router-link
+        <!-- </router-link> --><h1>/</h1>
+        <div @click="goToCreateAccount" class="font-[700] font-quicksand text-text-color text-[15px]">Register</div>
+        <!-- <router-link
           to="/create-account"
           class="font-[700] font-quicksand text-text-color text-[15px]"
-        >
-          Register
-        </router-link>
-      </div>
-      <div v-else class="flex items-center gap-3">
+        > -->
+          
+        <!-- </router-link> -->
+        </div>
+        <div v-else class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <img
             src="../assets/img/home/profile-icon.png"
@@ -488,6 +488,15 @@ onMounted(() => {
     if (e.key === "cart") loadCartCount();
   });
 });
+
+const goToLogin = () => {
+  localStorage.setItem("nextHiddenPath", 1);
+  router.push("/login");
+};
+const goToCreateAccount = () => {
+  localStorage.setItem("nextHiddenPath", 1);
+  router.push("/create-account");
+};
 
 // Clean up
 onUnmounted(() => {

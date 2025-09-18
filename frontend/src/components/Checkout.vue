@@ -7,11 +7,13 @@
         Checkout
       </span>
     </div>
+
     <div class="ml-2 font-quicksand pb-5 font-[600] text-[11px] text-[#898989]">
       <span class="mr-1">Home</span>/<span class="ml-1">Checkout</span>
     </div>
+
     <div class="grid lg:grid-cols-2 gap-2">
-      <!-- Products -->
+      <!-- ================= LEFT (Products) ================= -->
       <div class="bg-[#F5F5F5] py-5">
         <div class="flex justify-between md:px-20 mb-5">
           <div
@@ -115,14 +117,10 @@
         </div>
       </div>
 
-      <!-- Right Section -->
+      <!--================= Right Section (Register / Login / Billing) -->
       <div class="bg-[#F5F5F5] py-5 mt-2">
         <!-- Checkbox for Existing Customer -->
-
-        <!-- v-if="isExistingCustomer" -->
-
-        <!-- Show phone + password if checked -->
-        <div v-if="!isExistingCustomer" class="ml-5 space-y-3 mb-4">
+        <!-- <div v-if="!isExistingCustomer" class="ml-5 space-y-3 mb-4">
           <label class="flex items-center ml-5 cursor-pointer mb-5">
             <input
               type="checkbox"
@@ -221,7 +219,7 @@
               </p>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <!-- Billing & Card Info (hidden if existing customer) -->
         <div
@@ -287,15 +285,15 @@
           </button>
         </div>
         <!-- login and continue -->
-        <div v-if="isExistingCustomerButNotLogin" class="w-full px-5 mt-5">
+        <!-- <div v-if="isExistingCustomerButNotLogin" class="w-full px-5 mt-5">
           <button
             :disabled="!isFormValid || !isExistingCustomerButNotLogin"
             @click="submitOrder"
             class="w-full cursor-pointer text-[24px] text-center font-quicksand font-[700] uppercase text-[#FFFFFF] bg-secondary rounded-[8px] py-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Login & Continue
-          </button>
-        </div>
+          </button> 
+        </div> -->
       </div>
     </div>
   </div>
@@ -305,17 +303,19 @@
 import { ref, computed, onMounted } from "vue";
 import api from "../services/api.js";
 import { useAuth } from "../composables/useAuth.js";
+import { login_register } from "../services/login_register.js";
 
 const { initAuth, getAuthData, fetchUserById } = useAuth();
-const userInfo = ref({});
+const { loginUser, registerUser } = login_register();
 
 const products = ref([]);
 const isExistingCustomer = ref(false);
-const isExistingCustomerButNotLogin = ref(false);
-const phone = ref("");
-const password = ref("");
+// const isExistingCustomerButNotLogin = ref(false);
+// const phone = ref("");
+// const password = ref("");
 const phoneError = ref("");
 const passwordError = ref("");
+const errorMessage = ref("");
 
 const billingDetails = ref({
   token: "",
@@ -334,6 +334,7 @@ onMounted(() => {
   if (stored) products.value = JSON.parse(stored);
 });
 
+// Price calculations
 const subtotal = computed(() =>
   products.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
 );
@@ -384,12 +385,13 @@ function validatePassword() {
 }
 
 // Form valid
-const isFormValid = computed(() => {
-  return validatePhone() && validatePassword();
-});
+// const isFormValid = computed(() => {
+//   return validatePhone() && validatePassword();
+// });
 
 // Fetch user info if logged in
 onMounted(async () => {
+  localStorage.removeItem("nextHiddenPath");
   // Initialize authentication state
   initAuth();
 

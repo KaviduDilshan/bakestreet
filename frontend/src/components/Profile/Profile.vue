@@ -121,6 +121,7 @@
   }; 
 
   onMounted(async () => {
+    localStorage.removeItem("nextHiddenPath");
   // Initialize authentication state
   initAuth();
 

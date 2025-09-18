@@ -129,7 +129,18 @@ function handleKeydown(index, event) {
 async function handleVerify() {
   if (!isOtpComplete.value) return;
   errorMessage.value = "";
+  
+
+  // let nextPath = localStorage.getItem("nextHiddenPath") || "/profile";
+
+  // if (nextPath === "1") {
+  //   nextPath = "/profile";
+  // } else if (nextPath === "2") {
+  //   nextPath = "/checkout";
+  // }
   isLoading.value = true;
+// alert(nextPath);
+
   try {
     const response = await api.post("/customers/verify-otp", {
       phoneNumber: phoneNumber.value,
@@ -138,7 +149,7 @@ async function handleVerify() {
     if (response.data.isSuccess) {
       localStorage.setItem("jwt", response.data.token);
       localStorage.removeItem("signup_data");
-      router.push("/profile");
+      router.push("/login");
     } else {
       errorMessage.value = response.data.message || "OTP verification failed.";
     }

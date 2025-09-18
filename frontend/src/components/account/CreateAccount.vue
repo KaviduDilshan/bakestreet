@@ -79,9 +79,10 @@
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import api from "../../services/api.js"; // Make sure this is your Axios instance
+import { login_register } from "../../services/login_register.js";
 
 const router = useRouter();
-
+const { registerUser } = login_register();
 const firstName = ref("");
 const lastName = ref("");
 const phoneNumber = ref("");
@@ -141,27 +142,31 @@ function validatePhone() {
 
 async function onSubmit() {
   errorMessage.value = "";
+  
   isLoading.value = true;
-  try {
-    const response = await api.post("/customers/send-otp", { // Assign the response here
-      phoneNumber: phoneNumber.value,
-      firstName: firstName.value,
-      lastName: lastName.value,
-      password: password.value,
-    });
-    if (response.data.isSuccess) {
-      localStorage.setItem("signup_data", JSON.stringify({ firstName: firstName.value, lastName: lastName.value, phoneNumber: phoneNumber.value, password: password.value }));
-      router.push("/otp");
-    } else {
-      errorMessage.value = response.data.message || "Account creation failed.";
-    }
-  } catch (error) {
-    errorMessage.value =
-      error.response?.data?.message ||
-      "Server error. Please try again later.";
-  } finally {
-    isLoading.value = false;
-  }
+  errorMessage.value = await registerUser(firstName.value, lastName.value, phoneNumber.value, password.value);
+  isLoading.value = false;
+
+//   try {
+//     const response = await api.post("/customers/send-otp", { // Assign the response here
+//       phoneNumber: phoneNumber.value,
+//       firstName: firstName.value,
+//       lastName: lastName.value,
+//       password: password.value,
+//     });
+//     if (response.data.isSuccess) {
+//       localStorage.setItem("signup_data", JSON.stringify({ firstName: firstName.value, lastName: lastName.value, phoneNumber: phoneNumber.value, password: password.value }));
+//       router.push("/otp");
+//     } else {
+//       errorMessage.value = response.data.message || "Account creation failed.";
+//     }
+//   } catch (error) {
+//     errorMessage.value =
+//       error.response?.data?.message ||
+//       "Server error. Please try again later.";
+//   } finally {
+//     isLoading.value = false;
+//   }
 }
 </script>
 
