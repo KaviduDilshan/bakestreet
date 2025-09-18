@@ -12,9 +12,9 @@
       <span class="mr-1">Home</span>/<span class="ml-1">Checkout</span>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-2">
+    <div class="grid lg:grid-cols-3 gap-2">
       <!-- ================= LEFT (Products) ================= -->
-      <div class="bg-[#F5F5F5] py-5">
+      <div class="bg-[#F5F5F5] py-5 lg:col-span-2">
         <div class="flex justify-between md:px-20 mb-5">
           <div
             class="font-quicksand font-[700] text-[15px] text-[#000000] text-start pl-3"
@@ -222,15 +222,19 @@
         </div> -->
 
         <!-- Billing & Card Info (hidden if existing customer) -->
-        <div
-          v-if="!isExistingCustomerButNotLogin"
-          class="md:grid md:grid-cols-2 px-5 gap-5 mb-5"
-        >
+        <div v-if="!isExistingCustomerButNotLogin" class="w-full px-5 mb-5">
+          <!-- md:grid md:grid-cols-2 px-5 gap-5 mb-5 -->
           <div>
             <div
               class="font-quicksand font-[700] text-[15px] text-[#000000] text-start pb-5"
             >
               Billing Address
+            </div>
+            <div
+              v-if="errorMessage"
+              class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
+            >
+              {{ errorMessage }}
             </div>
             <input
               type="text"
@@ -244,6 +248,9 @@
               v-model="billingDetails.contact"
               class="font-quicksand mt-5 font-[500] py-3 text-[12px] bg-white border border-[#494949]/70 rounded-[8px] text-[#818181] pl-3 w-full"
             />
+            <p v-if="phoneError" class="text-red-500 text-sm mt-1">
+              {{ phoneError }}
+            </p>
             <input
               type="text"
               placeholder="Address 1"
@@ -271,13 +278,45 @@
               v-model="billingDetails.addressZip"
               class="font-quicksand mt-5 font-[500] py-3 text-[12px] bg-white border border-[#494949]/70 rounded-[8px] text-[#818181] pl-3 w-full"
             />
+
+            <h2
+              class="text-[15px] mb-3 mt-3 text-sky-600 font-semibold text-left"
+            >
+              Payment Method
+            </h2>
+            <div class="w-full flex gap-3">
+              <label
+                for="payment-online"
+                class="flex items-center gap-3 cursor-pointer font-quicksand font-[500] text-[12px] bg-white border border-[#494949]/70 rounded-[8px] px-4 py-3 text-[#818181] hover:bg-sky-50 flex-1"
+              >
+                <input
+                  type="radio"
+                  value="1"
+                  class="cursor-pointer"
+                  v-model="billingDetails.paymentMethod"
+                />
+                <span class="text-gray-700">ONLINE PAYMENT</span>
+              </label>
+
+              <label
+                for="payment-cod"
+                class="flex items-center gap-3 cursor-pointer font-quicksand font-[500] text-[12px] bg-white border border-[#494949]/70 rounded-[8px] px-4 py-3 text-[#818181] hover:bg-sky-50 flex-1"
+              >
+                <input
+                  type="radio"
+                  value="2"
+                  class="cursor-pointer"
+                  v-model="billingDetails.paymentMethod"
+                />
+                <span class="text-gray-700">CASH ON DELIVERY</span>
+              </label>
+            </div>
           </div>
         </div>
 
         <!-- Submit Button -->
         <div v-if="!isExistingCustomerButNotLogin" class="w-full px-5 mt-5">
           <button
-            :disabled="!isExistingCustomer"
             @click="submitOrder"
             class="w-full cursor-pointer text-[24px] text-center font-quicksand font-[700] uppercase text-[#FFFFFF] bg-secondary rounded-[8px] py-[10px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -304,6 +343,7 @@ import { ref, computed, onMounted } from "vue";
 import api from "../services/api.js";
 import { useAuth } from "../composables/useAuth.js";
 import { login_register } from "../services/login_register.js";
+import router from "../router/index.js";
 
 const { initAuth, getAuthData, fetchUserById } = useAuth();
 const { loginUser, registerUser } = login_register();
@@ -314,7 +354,7 @@ const isExistingCustomer = ref(false);
 // const phone = ref("");
 // const password = ref("");
 const phoneError = ref("");
-const passwordError = ref("");
+// const passwordError = ref("");
 const errorMessage = ref("");
 
 const billingDetails = ref({
@@ -326,6 +366,7 @@ const billingDetails = ref({
   addressCity: "",
   addressState: "",
   addressZip: "",
+  paymentMethod: "",
 });
 
 // Load cart
@@ -346,8 +387,8 @@ const formatPrice = (val) =>
   });
 
 // Validate Phone
-function validatePhone() {
-  const val = phone.value.trim();
+function validatePhone(phone) {
+  const val = phone.trim();
 
   if (!val) {
     phoneError.value = "Phone number is required";
@@ -375,14 +416,14 @@ function validatePhone() {
 }
 
 // Validate Password
-function validatePassword() {
-  if (!password.value.trim()) {
-    passwordError.value = "Password is required";
-    return false;
-  }
-  passwordError.value = "";
-  return true;
-}
+// function validatePassword() {
+//   if (!password.value.trim()) {
+//     passwordError.value = "Password is required";
+//     return false;
+//   }
+//   passwordError.value = "";
+//   return true;
+// }
 
 // Form valid
 // const isFormValid = computed(() => {
@@ -401,21 +442,20 @@ onMounted(async () => {
     try {
       // Fetch full user details
       const customer = await fetchUserById(authData.customerId);
-      
 
       if (customer) {
         console.log("Fetched Phone Number:", customer.user_username);
-        
+
         billingDetails.value = {
           token: authData.token,
           user_id: customer.customer_id || "",
           fullname:
             customer.user_first_name + " " + customer.user_last_name || "",
-          contact: customer.user_username || "",
+          contact: (customer.user_username || "").slice(-9),
           addressStreet: customer.address_street || "",
           addressCity: customer.address_city || "",
           addressState: customer.address_state || "",
-          addressZip: customer.address_zip || ""
+          addressZip: customer.address_zip || "",
           // ...customer, // spread full user info from API
         };
       }
@@ -431,38 +471,91 @@ onMounted(async () => {
 
 // Submit order
 const submitOrder = async () => {
+  if (!products.value.length) return;
+
   if (
-    !products.value.length ||
-    (isExistingCustomer.value && !isFormValid.value)
-  )
+    !billingDetails.value.fullname.trim() ||
+    !billingDetails.value.contact.trim() ||
+    !billingDetails.value.addressStreet.trim() ||
+    !billingDetails.value.addressCity.trim() ||
+    !billingDetails.value.addressState.trim() ||
+    !billingDetails.value.addressZip.trim()
+  ) {
+    errorMessage.value = "Please fill in all billing details.";
     return;
+  }
+  if (!validatePhone(billingDetails.value.contact)) {
+    errorMessage.value = "Please enter a valid phone number.";
+    return;
+  }
 
-  try {
-    const orderCode = Math.floor(Math.random() * 1000000);
+  if (!billingDetails.value.paymentMethod) {
+    errorMessage.value = "Please select a payment method.";
+    return;
+  } else if (billingDetails.value.paymentMethod === "1") {
+    //     try {
+    //   const orderCode = Math.floor(Math.random() * 1000000);
 
-    const orderRes = await api.post("/order", {
-      order_code: orderCode,
-      products: products.value,
-      phone: phone.value,
-      password: password.value,
-      isExisting: isExistingCustomer.value,
-      billingDetails: !isExistingCustomer.value ? billingDetails.value : null,
-    });
+    //   const orderRes = await api.post("/order", {
+    //     order_code: orderCode,
+    //     products: products.value,
+    //     phone: billingDetails.value.contact,
+    //     password: password.value,
+    //     isExisting: isExistingCustomer.value,
+    //     billingDetails: !isExistingCustomer.value ? billingDetails.value : null,
+    //   });
 
-    if (!orderRes.data.success) return;
+    //   if (!orderRes.data.success) return;
 
-    const rowRes = await api.post("/order_row", {
-      order_code: orderCode,
-      products: products.value,
-    });
+    //   const rowRes = await api.post("/order_row", {
+    //     order_code: orderCode,
+    //     products: products.value,
+    //   });
 
-    if (rowRes.data.success) {
-      localStorage.removeItem("cart");
-      products.value = [];
-      window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+    //   if (rowRes.data.success) {
+    //     localStorage.removeItem("cart");
+    //     products.value = [];
+    //     window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+    //   }
+    // } catch (err) {
+    //   console.error("Checkout error:", err);
+    // }
+
+    try {
+      const orderCode = Math.floor(Math.random() * 1000000);
+      alert("Online Payment." + orderCode);
+
+      const orderRes = await api.post("/order", {
+        order_code: orderCode,
+        products: products.value,
+        user_id: billingDetails.value.user_id,
+        fullname: billingDetails.value.fullname,
+        contact: billingDetails.value.contact,
+        addressStreet: billingDetails.value.addressStreet,
+        addressCity: billingDetails.value.addressCity,
+        addressState: billingDetails.value.addressState,
+        addressZip: billingDetails.value.addressZip,
+        paymentMethod: billingDetails.value.paymentMethod
+      });
+      alert("hi");
+      if (!orderRes.data.success) return;
+
+      const rowRes = await api.post("/order_row", {
+        order_code: orderCode,
+        products: products.value,
+      });
+
+      if (rowRes.data.success) {
+        localStorage.removeItem("cart");
+        products.value = [];
+        window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
     }
-  } catch (err) {
-    console.error("Checkout error:", err);
+  } else if (billingDetails.value.paymentMethod === "2") {
+    alert("Cash on Delivery. Thank you for your order!");
+    router.push("/product");
   }
 };
 </script>
