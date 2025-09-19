@@ -333,6 +333,17 @@
             Login & Continue
           </button> 
         </div> -->
+
+        <!-- Popup -->
+        <div
+          v-if="showPopup"
+          class="fixed inset-0 w-200 flex items-center justify-center bg-black/50"
+        >
+          <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h2 class="text-xl font-semibold mb-2">🎉 Thank you!</h2>
+            <p>Your order has been placed successfully.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -356,7 +367,7 @@ const isExistingCustomer = ref(false);
 const phoneError = ref("");
 // const passwordError = ref("");
 const errorMessage = ref("");
-
+const showPopup = ref(false);
 const billingDetails = ref({
   token: "",
   user_id: "",
@@ -492,7 +503,7 @@ const submitOrder = async () => {
   if (!billingDetails.value.paymentMethod) {
     errorMessage.value = "Please select a payment method.";
     return;
-  } else if (billingDetails.value.paymentMethod === "1") {
+  } else if (billingDetails.value.paymentMethod) {
     //     try {
     //   const orderCode = Math.floor(Math.random() * 1000000);
 
@@ -548,17 +559,25 @@ const submitOrder = async () => {
         products: products.value,
       });
 
-      if (rowRes.data.success) {
+      if (rowRes.data.success && billingDetails.value.paymentMethod === "1") {
         localStorage.removeItem("cart");
         products.value = [];
-        window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+        window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay`;
+        // window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+      } else {
+        showPopup.value = true;
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+          showPopup.value = false; // hide popup
+          localStorage.removeItem("cart"); // clear cart
+          products.value = []; // reset products
+          window.location.href = "/product"; // navigate to product page
+        }, 2000);
       }
     } catch (err) {
       console.error("Checkout error:", err);
     }
-  } else if (billingDetails.value.paymentMethod === "2") {
-    alert("Cash on Delivery. Thank you for your order!");
-    router.push("/product");
   }
 };
 </script>

@@ -3,8 +3,6 @@ import crypto from "crypto";
 import pool from "../config/db.js";
 import { encryptId, decryptId } from "../utils/crypto.js";
 
-
-
 const router = express.Router();
 
 // ====== CONFIG ======
@@ -75,7 +73,7 @@ router.get("/pay", async (req, res) => {
     `);
 
     if (!orderResult.rows.length) {
-      return res.status(404).send("No orders found");
+      return res.status(404).send({ status:false, message: "No orders found" });
     }
 
     const order = orderResult.rows[0];
@@ -88,7 +86,7 @@ router.get("/pay", async (req, res) => {
     `, [order.customer_id]);
 
     if (!customerResult.rows.length) {
-      return res.status(404).send("Customer not found");
+      return res.status(404).send({ status:false, message: "Customer not found" });
     }
 
     const customer = customerResult.rows[0];
@@ -126,6 +124,7 @@ router.get("/pay", async (req, res) => {
             <input type="hidden" name="currency" value="${currency}">
             <input type="hidden" name="amount" value="${amount}">
 
+
             <input type="hidden" name="first_name" value="${first_name}">
             <input type="hidden" name="last_name" value="${last_name}">
             <input type="hidden" name="email" value="${email}">
@@ -135,6 +134,7 @@ router.get("/pay", async (req, res) => {
             <input type="hidden" name="country" value="${customer.address_country || ""}">
 
             <input type="hidden" name="hash" value="${hash}">
+
           </form>
         </body>
       </html>
@@ -144,7 +144,7 @@ router.get("/pay", async (req, res) => {
 
   } catch (err) {
     console.error("Error fetching last order:", err);
-    res.status(500).send("Server error");
+    res.status(500).send({ status:false, message: "Server error" });
   }
 });
 
@@ -152,17 +152,54 @@ router.get("/pay", async (req, res) => {
 router.post("/notify", express.urlencoded({ extended: true }), (req, res) => {
   const data = req.body;
 
+//   const md5sig = strtoupper(
+//       md5 (
+//           merchant_id + 
+//           order_id + 
+//           payhere_amount + 
+//           payhere_currency + 
+//         status_code + 
+//         strtoupper(md5(merchant_secret)) 
+//     ) 
+// )
+
   const isValid = verifyMd5Sig(data, PAYHERE_MERCHANT_SECRET);
 
-  if (isValid && data.status_code === "2") {
-    //success
-  } else {
-    //failed
+  // if (isValid && data.status_code === "2") {
+  //   return res.send({ status:true, message: "Payment okey" });
+  // } else {
+  //   return res.send({ status:false, message: "Payment failed" });
+  // }
+  if (!isValid) {
+    return res.send({ status: false, message: "Invalid signature" });
   }
 
-  res.sendStatus(200);
-});
+  let status = false;
+  let message = "";
 
+  switch (data.status_code) {
+    case "2":
+      status = true;
+      message = "Payment success";
+      break;
+    case "0":
+      message = "Payment pending";
+      break;
+    case "-1":
+      message = "Payment canceled";
+      break;
+    case "-2":
+      message = "Payment failed";
+      break;
+    case "-3":
+      message = "Payment chargedback";
+      break;
+    default:
+      message = "Unknown payment status";
+  }
+
+  res.send({ status, message ,});
+});
 
 
 

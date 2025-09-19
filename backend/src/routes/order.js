@@ -301,4 +301,20 @@ router.get("/order_rows/:order_code", async (req, res) => {
   }
 });
 
+router.get("/success", async (req, res) => {
+    const { order_id } = req.query; 
+    
+    await pool.query(
+      `update e_pos_order
+        set order_payment_status=1 where o_id=$1`,
+      [order_id]
+    );
+
+    res.redirect(`http://localhost:5173/product`);
+});
+
+router.get("/cancel", async (req, res) => {
+    res.redirect(`http://localhost:5173/checkout`);
+});
+
 export default router;

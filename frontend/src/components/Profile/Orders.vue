@@ -307,7 +307,8 @@ const viewOrder = async (orderId) => {
 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr);
-  return d.toLocaleDateString() + " " + d.toLocaleTimeString();
+  return d.toLocaleDateString();
+  //  + "  " + d.toLocaleTimeString();
 };
 const deliveredStatus = (status) => {
   if(status === "0"){
