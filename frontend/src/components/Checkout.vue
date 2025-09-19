@@ -541,18 +541,18 @@ const submitOrder = async () => {
         console.error("Order creation failed:", orderRes.data.message);
         return;
       }
-      alert("Redirecting to payment gateway...");
+      // alert("Redirecting to payment gateway...");
 
-      // const rowRes = await api.post("/order_row", {
-      //   order_code: orderCode,
-      //   products: products.value,
-      // });
+      const rowRes = await api.post("/order_row", {
+        order_code: orderCode,
+        products: products.value,
+      });
 
-      // if (rowRes.data.success) {
-      //   localStorage.removeItem("cart");
-      //   products.value = [];
-      //   window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
-      // }
+      if (rowRes.data.success) {
+        localStorage.removeItem("cart");
+        products.value = [];
+        window.location.href = `http://localhost:5000/api/v1/e-commerce/payhere/pay?order=${orderCode}`;
+      }
     } catch (err) {
       console.error("Checkout error:", err);
     }

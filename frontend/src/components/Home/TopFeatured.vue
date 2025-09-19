@@ -211,6 +211,7 @@ const groupedProducts = ref([]);
 
 onMounted(async () => {
   try {
+    console.log("Fetching featured items..." + products.value.length);  
     const { data } = await api.get("/featured-items"); // adjust API URL
     products.value = data;
 

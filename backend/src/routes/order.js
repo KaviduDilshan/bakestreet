@@ -135,23 +135,21 @@ router.post("/order", async (req, res) => {
     // );
     await pool.query(
       `update e_pos_customers
-        set customer_name=$1,user_contact=$2,address_street=$3,address_city=$4,address_state=$5,address_zip=$6, active=$7, archived=$8, created_at=$9, last_login=$10
-        where customer_id=$11`,
+        set customer_name=$1,user_contact=$2,address_street=$3,address_city=$4,address_state=$5,address_zip=$6, active=$7, archived=$8, user_lastlogin=$9
+        where customer_id=$10`,
       [
-        fullname || null,
-        "94" + contact || null,
-        addressStreet || null,
-        addressCity || null,
-        addressState || null,
-        addressZip || null,
+        fullname ?? null,
+        "94" + contact ?? null,
+        addressStreet ?? null,
+        addressCity ?? null,
+        addressState ?? null,
+        addressZip ?? null,
         true,
         false,
-        new Date(),
-        new Date(), //  FIX: Use dayjs variables
+        now.toDate(),
         customerId,
       ]
     );
-  
 
     // customerId = insertCustomerRes.rows[0].customer_id;
     // }
@@ -164,17 +162,28 @@ router.post("/order", async (req, res) => {
 
     const orderRes = await pool.query(
       `INSERT INTO e_pos_order
-      (customer_id, order_code, order_discount, order_shipping_charg,
-       order_sub_total, order_total, order_date, order_time, order_payment_type, order_payment_status, order_delivery_status)
+      (customer_id, order_code, order_discount, order_shipping_charg, order_sub_total, order_total, order_date, order_time, order_payment_type, order_payment_status, order_delivery_status)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
       RETURNING o_id`,
-      [customerId, order_code, discount, shipping, subtotal, total, date, time, paymentMethod, 0, 0]
+      [
+        customerId,
+        order_code,
+        discount,
+        shipping,
+        subtotal,
+        total,
+        date,
+        time,
+        paymentMethod,
+        0,
+        0,
+      ]
     );
 
     const orderId = orderRes.rows[0].o_id;
 
     await pool.query("COMMIT");
-console.log("Order placed with ID:", orderId);
+    console.log("Order placed with ID: "+ orderId+" and code: "+ order_code );
     res.json({
       success: true,
       message: "Order placed successfully",
