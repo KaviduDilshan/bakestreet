@@ -231,13 +231,21 @@ router.get("/items/:id", async (req, res) => {
   }
 });
 
-// Get related products (same subcategory, exclude current product)
+// Get related products with min/max prices
 router.get("/products/related/:subcategoryId/:productId", async (req, res) => {
   const { subcategoryId, productId } = req.params;
 
   try {
     const result = await pool.query(
       `
+      WITH price_range AS (
+        SELECT 
+          item_id,
+          MIN(item_sell) AS min_price,
+          MAX(item_sell) AS max_price
+        FROM e_pos_item_price
+        GROUP BY item_id
+      )
       SELECT 
         i.item_id,
         i.item_name,
@@ -245,16 +253,13 @@ router.get("/products/related/:subcategoryId/:productId", async (req, res) => {
         i.scategory_id,
         i.item_short_description,
         b.brand_name,
-        MIN(p.item_sell) AS min_price,
-        MAX(p.item_sell) AS max_price
+        pr.min_price,
+        pr.max_price
       FROM e_pos_item i
-      LEFT JOIN e_pos_brands b 
-        ON i.brand_id = b.brand_id
-      LEFT JOIN e_pos_item_price p 
-        ON i.item_id = p.item_id
+      LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
+      LEFT JOIN price_range pr ON i.item_id = pr.item_id
       WHERE i.scategory_id = $1
         AND i.item_id != $2
-      GROUP BY i.item_id, i.item_name, i.item_image_1, i.scategory_id, b.brand_name
       ORDER BY i.item_id ASC
       LIMIT 20
       `,

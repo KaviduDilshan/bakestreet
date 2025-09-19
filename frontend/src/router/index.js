@@ -222,6 +222,7 @@ const router = createRouter({
       },
       beforeEnter: requireAuth,
     },
+    
     {
       path: "/wishlist",
       name: "wishlist",

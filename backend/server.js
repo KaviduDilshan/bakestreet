@@ -7,6 +7,7 @@ import itemRouter from "./src/routes/item.js";
 import customerRouter from "./src/routes/customer.js";
 import orderRouter from "./src/routes/order.js";
 import payhere from "./src/routes/payhere.js";
+import wishlistRouter from "./src/routes/wishlist.js";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use("/api/v1/e-commerce", categoriesRouter);
 app.use("/api/v1/e-commerce", itemRouter);
 app.use("/api/v1/e-commerce", customerRouter);
 app.use("/api/v1/e-commerce", orderRouter);
+app.use("/api/v1/e-commerce", wishlistRouter);
 app.use("/api/v1/e-commerce/payhere", payhere);
 
 

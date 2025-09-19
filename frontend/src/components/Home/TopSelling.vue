@@ -1,11 +1,9 @@
 <template>
   <section class="md:px-20 px-5 bg-white">
-    <!-- Desktop -->
-    <div class="pt-10 pb-10 text-text-color md:block hidden">
+    <!-- ✅ Desktop -->
+    <div class="pt-10 pb-10 text-text-color hidden md:block">
       <div class="flex justify-between items-center">
-        <div class="text-[20px] text-text-color font-[700] font-quicksand">
-          New Arrivals Products
-        </div>
+        <h2 class="text-[20px] font-[700] font-quicksand">New Arrivals Products</h2>
         <div class="flex gap-2 pt-[3px]">
           <img
             id="newarrivals-swiper-prev"
@@ -27,16 +25,14 @@
       <!-- Swiper Carousel -->
       <Swiper
         :modules="[Navigation]"
-        :navigation="{
-          nextEl: '#newarrivals-swiper-next',
-          prevEl: '#newarrivals-swiper-prev',
-        }"
+        :navigation="{ nextEl: '#newarrivals-swiper-next', prevEl: '#newarrivals-swiper-prev' }"
         :breakpoints="breakpoints"
         :space-between="20"
       >
         <SwiperSlide v-for="card in pros" :key="card.item_id">
           <div
-            class="relative grid justify-items-center p-5 bg-[#F5F5F5] rounded-lg drop-shadow-xl mb-1"
+            class="relative grid justify-items-center p-5 bg-[#F5F5F5] rounded-lg drop-shadow-xl mb-1 cursor-pointer"
+            @click="goToSingle(card)"
           >
             <!-- Heart -->
             <img
@@ -55,11 +51,9 @@
             </div>
 
             <!-- Title -->
-            <div
-              class="pt-5 text-[14px] text-center text-text-color font-[700] font-quicksand"
-            >
+            <p class="pt-5 text-[14px] text-center text-text-color font-[700] font-quicksand">
               {{ card.item_name }}
-            </div>
+            </p>
 
             <!-- Rating -->
             <div class="flex gap-[2px] pt-3">
@@ -73,26 +67,24 @@
             </div>
 
             <!-- Prices -->
-            <div
-              class="font-[700] font-quicksand pt-3"
-              :class="card.total_count > 0 ? 'text-text-color' : 'text-[#B1B1B1]'"
-            >
+            <p class="font-[700] font-quicksand pt-3 text-text-color">
               {{ card.min_price }} LKR - {{ card.max_price }} LKR
-            </div>
+            </p>
 
             <!-- Old Price -->
-            <div class="text-[16px] text-[#B8B8B8] font-[600] font-quicksand pt-3 line-through">
-              {{ card.oldPrice || '' }}
-            </div>
+            <p
+              v-if="card.oldPrice"
+              class="text-[16px] text-[#B8B8B8] font-[600] font-quicksand pt-3 line-through"
+            >
+              {{ card.oldPrice }}
+            </p>
 
             <!-- Add To Cart -->
-            <button :disabled="card.total_count >= 0" @click="addToCartAndNavigate(card)" :class="[
-              card.total_count > 0
-                ? 'bg-secondary hover:bg-primary cursor-pointer'
-                : 'bg-[#828282] cursor-not-allowed',
-              'text-[#FFFFFF] lg:text-[15px] text-[12px] rounded-[8px] font-quicksand mt-3 font-[700] w-full text-center py-1',
-            ]">
-              {{ card.total_count > 0 ? "Add To Cart" : "Out Of Stock" }}
+            <button
+              @click.stop="goToSingle(card)"
+              class="bg-secondary hover:bg-primary text-white lg:text-[15px] text-[12px] rounded-[8px] font-quicksand mt-3 font-[700] w-full py-1"
+            >
+              Add To Cart
             </button>
           </div>
         </SwiperSlide>
@@ -110,7 +102,7 @@
       </router-link>
     </div>
 
-    <!-- Mobile -->
+    <!-- ✅ Mobile -->
     <div class="block md:hidden py-10">
       <h2 class="text-start text-xl font-semibold text-text-color mb-2">
         New Arrivals Products
@@ -121,7 +113,8 @@
         <div
           v-for="card in pros"
           :key="card.item_id"
-          class="p-2 rounded-lg shadow flex flex-col items-center text-center relative bg-white min-h-[300px]"
+          class="p-3 rounded-lg shadow flex flex-col items-center text-center relative bg-white min-h-[320px] cursor-pointer"
+          @click="goToSingle(card)"
         >
           <!-- Heart -->
           <img
@@ -154,25 +147,19 @@
           </div>
 
           <!-- Prices -->
-          <p class="text-text-color text-base font-bold leading-snug pt-2">
+          <p class="text-text-color text-base font-bold pt-2">
             {{ card.min_price }} LKR - {{ card.max_price }} LKR
           </p>
-          <p class="text-[#B8B8B8] line-through text-sm">
-            {{ card.oldPrice || '' }}
+          <p v-if="card.oldPrice" class="text-[#B8B8B8] line-through text-sm">
+            {{ card.oldPrice }}
           </p>
 
           <!-- Add To Cart -->
           <button
-            :disabled="isAddedToCart(card.item_id)"
-            @click="addToCart(card.item_id)"
-            :class="[
-              card.total_count > 0
-                ? 'bg-secondary hover:bg-primary cursor-pointer'
-                : 'bg-[#828282] cursor-not-allowed',
-              'text-[#FFFFFF] lg:text-[15px] text-[12px] rounded-[8px] font-quicksand mt-3 font-[700] w-full text-center py-1',
-            ]"
+            @click.stop="goToSingle(card)"
+            class="bg-secondary hover:bg-primary text-white text-[12px] rounded-[8px] font-quicksand mt-3 font-[700] w-full py-1"
           >
-            {{ isAddedToCart(card.item_id) ? "Add to Cart" : "Add To Cart" }}
+            Add To Cart
           </button>
         </div>
       </div>
@@ -198,13 +185,17 @@ import { Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import api from "../../services/api.js";
+import { useRouter } from "vue-router";
+import { encryptId } from "../../utils/crypto.js";
 
 const pros = ref([]);
 const isLoading = ref(true);
+const router = useRouter();
 
 // Breakpoints for Swiper
 const breakpoints = {
-  320: { slidesPerView: 1, spaceBetween: 20 },
+  320: { slidesPerView: 1, spaceBetween: 15 },
+  640: { slidesPerView: 2, spaceBetween: 15 },
   768: { slidesPerView: 3, spaceBetween: 20 },
   1024: { slidesPerView: 6, spaceBetween: 20 },
 };
@@ -213,24 +204,8 @@ const breakpoints = {
 async function fetchNewArrivals() {
   try {
     isLoading.value = true;
-
-    const [itemsRes, pricesRes] = await Promise.all([
-      api.get("items-with-brand"),
-      api.get("item-prices"),
-    ]);
-
-    const items = itemsRes.data || [];
-    const prices = pricesRes.data || [];
-
-    pros.value = items.map((item) => {
-      const priceObj = prices.find((p) => p.item_id === item.item_id);
-      return {
-        ...item,
-        min_price: priceObj ? Number(priceObj.min_price) : 0,
-        max_price: priceObj ? Number(priceObj.max_price) : 0,
-        oldPrice: priceObj ? Number(priceObj.old_price || 0) : 0,
-      };
-    });
+    const { data } = await api.get("featured-items");
+    pros.value = data || [];
   } catch (err) {
     console.error("Error fetching new arrivals:", err);
     pros.value = [];
@@ -239,21 +214,10 @@ async function fetchNewArrivals() {
   }
 }
 
-// Cart functions
-function addToCart(item_id) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  if (!cart.includes(item_id)) {
-    cart.push(item_id);
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }
+// ✅ Navigate to single product page
+function goToSingle(card) {
+  router.push({ name: "single", params: { id: encryptId(card.item_id) } });
 }
 
-function isAddedToCart(item_id) {
-  let cart = JSON.parse(localStorage.getItem("cart")) || [];
-  return cart.includes(item_id);
-}
-
-onMounted(() => {
-  fetchNewArrivals();
-});
+onMounted(fetchNewArrivals);
 </script>

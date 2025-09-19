@@ -12,7 +12,7 @@
           <div class="text-center text-[15px] font-medium mb-1">{{ item.desc }}</div>
           <div class="text-center text-[15px] font-medium mb-1">{{ item.brand }}</div>
           <div class="font-bold text-lg mb-2">
-            Rs.{{ formatPrice(item.price) }}
+            Rs.{{ formatPriceRange(item.min_price, item.max_price) }}
           </div>
 
           <!-- Stars -->
@@ -30,11 +30,10 @@
           </div>
 
           <button
-            class="bg-green-600 hover:bg-green-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
-            @click="$router.push(`/product/${encryptId(item.item_id)}`)">
+            class="bg-red-600 hover:bg-gray-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
+            @click="$router.push(`/product/${item.encryptedId}`)">
             Add To Cart
           </button>
-
         </div>
       </div>
 
@@ -55,7 +54,9 @@
               <img :src="item.img" :alt="item.desc" class="h-40 w-auto object-contain mb-4" />
               <div class="text-center text-[15px] font-medium mb-1">{{ item.desc }}</div>
               <div class="text-center text-[15px] font-medium mb-1">{{ item.brand }}</div>
-              <div class="font-bold text-lg mb-2">Rs.{{ formatPrice(item.price) }}</div>
+              <div class="font-bold text-lg mb-2">
+                Rs.{{ formatPriceRange(item.min_price, item.max_price) }}
+              </div>
 
               <div class="flex items-center justify-center mb-2">
                 <template v-for="i in 5" :key="'star-desktop-' + i + '-' + idx">
@@ -71,8 +72,8 @@
               </div>
 
               <button
-                class="bg-green-600 hover:bg-green-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
-                @click="$router.push(`/product/${encryptId(item.item_id)}`)">
+                class="bg-red-600 hover:bg-gray-700 text-white text-[15px] rounded-lg font-semibold w-full py-2 transition"
+                @click="$router.push(`/product/${item.encryptedId}`)">
                 Add To Cart
               </button>
 
@@ -138,31 +139,23 @@ watch(
     if (!id) return;
 
     try {
-      // Decrypt product ID
       const realId = decryptId(id);
-      if (!realId) {
-        console.error("Invalid product ID");
-        return;
-      }
+      if (!realId) return;
 
-      // Fetch main product
       const res = await api.get(`items/${realId}`);
       product.value = res.data;
 
-      // Determine subcategory
       const subcatId = product.value.subcategory_id || product.value.scategory_id;
       if (subcatId) {
-        // Fetch related products
         const relatedRes = await api.get(`products/related/${subcatId}/${product.value.item_id}`);
-        console.log("Related products:", relatedRes.data);
-
         relatedProducts.value = relatedRes.data.map((p) => ({
           item_id: p.item_id,
-          encryptedId: encryptId(p.item_id), // Use for routing
+          encryptedId: encryptId(p.item_id),
           desc: p.item_name,
           brand: p.brand_name,
           img: p.item_image_1,
-          price: p.min_price || 0,
+          min_price: p.min_price || 0,
+          max_price: p.max_price || 0,
           rating: 4,
         }));
       }
@@ -173,14 +166,11 @@ watch(
   { immediate: true }
 );
 
-function formatPrice(value) {
-  return Number(value).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+function formatPriceRange(min, max) {
+  if (min === max) return Number(min).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${Number(min).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} - ${Number(max).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 </script>
-
 
 <style>
 .related-swiper-pagination {
