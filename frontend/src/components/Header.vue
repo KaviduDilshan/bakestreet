@@ -425,7 +425,7 @@ const searchProducts = async () => {
     searchResults.value = res.data;
     showResults.value = true;
   } catch (err) {
-    console.error("❌ Product search failed:", err);
+    console.error("Product search failed:", err);
     searchResults.value = [];
     showResults.value = false;
   }

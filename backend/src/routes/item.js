@@ -131,39 +131,80 @@ router.get("/items/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
+    // const result = await pool.query(`
+    //   SELECT 
+    //     i.item_id,
+    //     i.item_name,
+    //     i.item_image_1,
+    //     i.item_short_description,
+    //     i.item_long_description,
+    //     b.brand_name,
+    //     m.mcategory_name,
+    //     s1.scategory_name,
+    //     s1.scategory_id,
+    //     p.item_prid,
+    //     p.item_sell,
+    //     p.item_cost,
+    //     p.item_stock,
+    //     p.branch_id,
+    //     p.item_discount_per,
+    //     p.item_discount_val,
+    //     a.attribute_id,
+    //     a.attribute_name,
+    //     v.p1variation_id,
+    //     v.p1variation_name
+    //   FROM e_pos_item i
+    //   LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
+    //   LEFT JOIN e_pos_item_maincategory m ON i.mcategory_id = m.mcategory_id
+    //   LEFT JOIN e_pos_item_subcategory_p1 s1 ON i.scategory_id = s1.scategory_id
+    //   LEFT JOIN e_pos_item_price p ON i.item_id = p.item_id
+    //   LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
+    //   LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
+    //   LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
+    //   WHERE i.item_id = $1 AND p.branch_id = 1
+    //   ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
+    // `, [id]);
+
     const result = await pool.query(`
-      SELECT 
-        i.item_id,
-        i.item_name,
-        i.item_image_1,
-        i.item_short_description,
-        i.item_long_description,
-        b.brand_name,
-        m.mcategory_name,
-        s1.scategory_name,
-        s1.scategory_id,
-        p.item_prid,
-        p.item_sell,
-        p.item_cost,
-        p.item_stock,
-        p.branch_id,
-        p.item_discount_per,
-        p.item_discount_val,
-        a.attribute_id,
-        a.attribute_name,
-        v.p1variation_id,
-        v.p1variation_name
-      FROM e_pos_item i
-      LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
-      LEFT JOIN e_pos_item_maincategory m ON i.mcategory_id = m.mcategory_id
-      LEFT JOIN e_pos_item_subcategory_p1 s1 ON i.scategory_id = s1.scategory_id
-      LEFT JOIN e_pos_item_price p ON i.item_id = p.item_id
-      LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
-      LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
-      LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
-      WHERE i.item_id = $1 AND p.branch_id = 1
-      ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
-    `, [id]);
+  SELECT 
+    i.item_id,
+    i.item_name,
+    i.item_image_1,
+    i.item_short_description,
+    i.item_long_description,
+    b.brand_name,
+    m.mcategory_name,
+    s1.scategory_name,
+    s1.scategory_id,
+    p.item_prid,
+    p.item_sell AS item_sell_original, 
+    CASE 
+  WHEN p.item_discount_val > 0 THEN p.item_sell - p.item_discount_val
+  WHEN p.item_discount_per > 0 THEN p.item_sell - (p.item_sell * p.item_discount_per / 100)
+  ELSE p.item_sell
+END AS item_sell,
+    p.item_cost,
+    p.item_stock,
+    p.branch_id,
+    p.item_discount_per,
+    p.item_discount_val,
+    a.attribute_id,
+    a.attribute_name,
+    v.p1variation_id,
+    v.p1variation_name
+  FROM e_pos_item i
+  LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
+  LEFT JOIN e_pos_item_maincategory m ON i.mcategory_id = m.mcategory_id
+  LEFT JOIN e_pos_item_subcategory_p1 s1 ON i.scategory_id = s1.scategory_id
+  LEFT JOIN e_pos_item_price p ON i.item_id = p.item_id
+  LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
+  LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
+  LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
+  WHERE i.item_id = $1 AND p.branch_id = 1
+  ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
+`, [id]);
+
+
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: "Product not found" });
