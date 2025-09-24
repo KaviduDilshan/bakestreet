@@ -37,7 +37,7 @@
                     Date
                   </th>
                   <th class="pb-3 md:text-center md:min-w-[100px] min-w-[50px]">
-                    Payment Status
+                    Payment 
                   </th>
                   <th class="pb-3 md:text-center md:min-w-[100px] min-w-[50px]">
                     Delivery Status
@@ -55,29 +55,7 @@
                   :key="order.o_id"
                   class="border-b border-dashed last:border-b-0"
                 >
-                  <!-- <td class="p-3 pl-0">
-                            <div class="flex items-center">
-                            <div class="flex flex-col justify-start">
-                                <router-link :to="`/user-order-single/${order._id}`">
-                                <a
-                                    href="javascript:void(0)"
-                                    class="mb-1 font-semibold transition-colors duration-200 ease-in-out text-lg/normal text-secondary-inverse hover:text-primary"
-                                >
-                                {{ order.refNo }}
-                                </a>
-                                </router-link>
-
-
-                            </div>
-                            </div>
-                        </td> -->
-                  <!-- <td class="p-3 pr-0 text-end">
-                    <span
-                      class="font-semibold text-light-inverse text-md/normal"
-                    >
-                      {{ order.o_id }} - {{ order.order_code }}
-                    </span>
-                  </td> -->
+                 
                   <td class="p-3 pr-0 text-center">
                     <span
                       class="text-center align-baseline inline-flex px-4 py-3 mr-auto items-center font-semibold text-[.95rem] leading-none text-primary bg-primary-light rounded-lg"

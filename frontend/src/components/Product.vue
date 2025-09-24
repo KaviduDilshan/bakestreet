@@ -429,24 +429,8 @@ onMounted(async () => {
   await fetchPrices();
   updateThumbs();
 
-  if (route.query.category) {
-    selectedMainCategory.value = Number(route.query.category);
-  }
-
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("order_id");
-  if (id) {
-    orderId.value = id;
-    try {
-      const res = await api.post(`notify`, { order_id: id });
-      paymentStatus.value = res.data.order_payment_status;
-    } catch (err) {
-      console.error("Error updating order payment status:", err);
-    }
-  }
-
-  const productId = route.params.id;
-  if (productId) await fetchProductById(productId);
+  
+  
 });
 </script>
 

@@ -131,40 +131,6 @@ router.get("/items/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // const result = await pool.query(`
-    //   SELECT 
-    //     i.item_id,
-    //     i.item_name,
-    //     i.item_image_1,
-    //     i.item_short_description,
-    //     i.item_long_description,
-    //     b.brand_name,
-    //     m.mcategory_name,
-    //     s1.scategory_name,
-    //     s1.scategory_id,
-    //     p.item_prid,
-    //     p.item_sell,
-    //     p.item_cost,
-    //     p.item_stock,
-    //     p.branch_id,
-    //     p.item_discount_per,
-    //     p.item_discount_val,
-    //     a.attribute_id,
-    //     a.attribute_name,
-    //     v.p1variation_id,
-    //     v.p1variation_name
-    //   FROM e_pos_item i
-    //   LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
-    //   LEFT JOIN e_pos_item_maincategory m ON i.mcategory_id = m.mcategory_id
-    //   LEFT JOIN e_pos_item_subcategory_p1 s1 ON i.scategory_id = s1.scategory_id
-    //   LEFT JOIN e_pos_item_price p ON i.item_id = p.item_id
-    //   LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
-    //   LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
-    //   LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
-    //   WHERE i.item_id = $1 AND p.branch_id = 1
-    //   ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
-    // `, [id]);
-
     const result = await pool.query(`
   SELECT 
     i.item_id,
@@ -172,6 +138,8 @@ router.get("/items/:id", async (req, res) => {
     i.item_image_1,
     i.item_short_description,
     i.item_long_description,
+    i.item_shipping,
+    i.item_faq,
     b.brand_name,
     m.mcategory_name,
     s1.scategory_name,
@@ -217,6 +185,8 @@ END AS item_sell,
       item_image_1: result.rows[0].item_image_1,
       item_short_description: result.rows[0].item_short_description,
       item_long_description: result.rows[0].item_long_description,
+      item_shipping: result.rows[0].item_shipping,
+      item_faq: result.rows[0].item_faq,
       brand_name: result.rows[0].brand_name,
       mcategory_name: result.rows[0].mcategory_name,
       scategory_name: result.rows[0].scategory_name,
@@ -231,6 +201,7 @@ END AS item_sell,
         priceMap[row.item_prid] = {
           item_prid: row.item_prid,
           item_sell: row.item_sell,
+          item_sell_original: row.item_sell_original,
           item_cost: row.item_cost,
           item_stock: row.item_stock,
           item_discount_per: row.item_discount_per,
@@ -347,3 +318,38 @@ router.get("/featured-items", async (req, res) => {
 });
 
 export default router;
+
+
+    // const result = await pool.query(`
+    //   SELECT 
+    //     i.item_id,
+    //     i.item_name,
+    //     i.item_image_1,
+    //     i.item_short_description,
+    //     i.item_long_description,
+    //     b.brand_name,
+    //     m.mcategory_name,
+    //     s1.scategory_name,
+    //     s1.scategory_id,
+    //     p.item_prid,
+    //     p.item_sell,
+    //     p.item_cost,
+    //     p.item_stock,
+    //     p.branch_id,
+    //     p.item_discount_per,
+    //     p.item_discount_val,
+    //     a.attribute_id,
+    //     a.attribute_name,
+    //     v.p1variation_id,
+    //     v.p1variation_name
+    //   FROM e_pos_item i
+    //   LEFT JOIN e_pos_brands b ON i.brand_id = b.brand_id
+    //   LEFT JOIN e_pos_item_maincategory m ON i.mcategory_id = m.mcategory_id
+    //   LEFT JOIN e_pos_item_subcategory_p1 s1 ON i.scategory_id = s1.scategory_id
+    //   LEFT JOIN e_pos_item_price p ON i.item_id = p.item_id
+    //   LEFT JOIN e_pos_variation_mix vm ON p.item_prid = vm.item_prid
+    //   LEFT JOIN e_pos_attribute a ON vm.attribute_id = a.attribute_id
+    //   LEFT JOIN e_pos_variations v ON vm.p1variation_id = v.p1variation_id
+    //   WHERE i.item_id = $1 AND p.branch_id = 1
+    //   ORDER BY p.item_prid, a.attribute_id, v.p1variation_id
+    // `, [id]);

@@ -36,3 +36,12 @@
       </div>
     </div>
 </template>
+
+<script setup>
+import { onMounted } from "vue";
+
+onMounted(() => {
+  localStorage.removeItem("cart"); 
+  products.value = [];// clear local storage cart
+});
+</script>

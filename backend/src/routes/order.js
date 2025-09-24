@@ -77,62 +77,7 @@ router.post("/order", async (req, res) => {
     await pool.query("BEGIN");
 
     let customerId = user_id;
-    // if (isExisting) {
-    //   const customerRes = await pool.query(
-    //     `SELECT customer_id, user_userpassword FROM e_pos_customers WHERE user_username = $1`,
-    //     ["94" + phone]
-    //   );
-
-    //   if (!customerRes.rows.length) {
-    //     await pool.query("ROLLBACK");
-    //     return res
-    //       .status(404)
-    //       .json({ success: false, message: "Customer not found" });
-    //   }
-
-    //   const customer = customerRes.rows[0];
-    //   const match = await bcrypt.compare(password, customer.user_userpassword);
-    //   if (!match) {
-    //     await pool.query("ROLLBACK");
-    //     return res
-    //       .status(401)
-    //       .json({ success: false, message: "Invalid password" });
-    //   }
-
-    //   customerId = customer.customer_id;
-    // } else {
-    // const {
-    //   fullname,
-    //   contact,
-    //   addressStreet,
-    //   addressCity,
-    //   addressState,
-    //   addressZip,
-    //   paymentMethod
-    // } = billingDetails;
-
-    // const updateCustomerRes = await pool.query(
-    //   `update e_pos_customers
-    //   set customer_name=$1,user_contact=$2,address_street=$3,address_city=$4,address_state=$5,address_zip=$6,last_login=$7
-    //   where customer_id=$8`,
-    //   [
-    //            (user_username, customer_name, user_contact, address_street, address_city, address_state, address_zip, active, archived, created_at, user_lastlogin)
-    //            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-    //            RETURNING customer_id`,
-    //   [
-    //     "94" + contact || null,
-    //     fullname || null,
-    //     "94" + contact || null,
-    //     addressStreet || null,
-    //     addressCity || null,
-    //     addressState || null,
-    //     addressZip || null,
-    //     true,
-    //     false,
-    //     now.toDate(),
-    //     now.toDate(), //  FIX: Use dayjs variables
-    //   ]
-    // );
+   
     await pool.query(
       `update e_pos_customers
         set customer_name=$1,user_contact=$2,address_street=$3,address_city=$4,address_state=$5,address_zip=$6, active=$7, archived=$8, user_lastlogin=$9
@@ -150,11 +95,7 @@ router.post("/order", async (req, res) => {
         customerId,
       ]
     );
-
-    // customerId = insertCustomerRes.rows[0].customer_id;
-    // }
-
-    // Insert order totals
+   
     const subtotal = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
     const discount = 10;
     const shipping = 0;
@@ -183,7 +124,7 @@ router.post("/order", async (req, res) => {
     const orderId = orderRes.rows[0].o_id;
 
     await pool.query("COMMIT");
-    console.log("Order placed with ID: "+ orderId+" and code: "+ order_code );
+    // console.log("Order placed with ID: "+ orderId+" and code: "+ order_code );
     res.json({
       success: true,
       message: "Order placed successfully",
@@ -247,8 +188,6 @@ WHERE o.customer_id = $1
 ORDER BY o.o_id ASC`,
       [id]
     );
-    //   AND r.item_id IS NOT NULL
-    // AND r.item_prid IS NOT NULL
 
     if (!result.rows.length) {
       return res.status(404).json({ message: "Order not found" });
@@ -264,12 +203,7 @@ router.get("/order_rows/:order_code", async (req, res) => {
   const { order_code } = req.params;
 
   try {
-    // const result = await pool.query(
-    //   `SELECT i.item_name,i.item_sku,p.item_discount_val,r.or_item_sell,r.or_quantity,r.or_total,r.or_date,v.p1variation_name
-    //   FROM e_pos_order_row r,e_pos_item i,e_pos_item_price p,e_pos_variation_mix vm,e_pos_variations v
-    //   WHERE r.item_id = i.item_id AND r.item_prid = p.item_prid AND order_code = $1 AND p.item_prid = vm.item_prid AND vm.p1variation_id = v.p1variation_id`,
-    //   [order_code]
-    // );
+    
     const result = await pool.query(
       `SELECT 
      i.item_name,
@@ -302,19 +236,70 @@ router.get("/order_rows/:order_code", async (req, res) => {
 });
 
 router.get("/success", async (req, res) => {
-    const { order_id } = req.query; 
-    
-    await pool.query(
-      `update e_pos_order
-        set order_payment_status=1 where o_id=$1`,
+  const { order_id } = req.query;
+
+  try {
+    // 1. Mark the order as paid and return customer_id + order_total
+    const orderResult = await pool.query(
+      `UPDATE e_pos_order
+       SET order_payment_status = 1
+       WHERE o_id = $1
+       RETURNING customer_id, order_total`,
       [order_id]
     );
 
-    res.redirect(`http://localhost:5173/product`);
+    if (!orderResult.rows.length) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const { customer_id, order_total } = orderResult.rows[0];
+
+    // 2. Calculate points
+       const pointsEarned = order_total / 500; // use floor so no decimals
+      //  const pointsEarned = Math.floor((order_total / 500) * 100) / 100;
+
+    // 3. Update customer points
+    await pool.query(
+      `UPDATE e_pos_customers
+       SET customer_points = COALESCE(customer_points, 0) + $1
+       WHERE customer_id = $2`,
+      [pointsEarned, customer_id]
+    );
+    
+    // res.status(200).json({ message: `Added ${pointsEarned} points to customer ID ${customer_id}` });
+
+    // 4. Redirect back to frontend
+    res.redirect(`http://localhost:5173/paymentsuccessfull`);
+  } catch (err) {
+    console.error("Error in /success route:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
+
 router.get("/cancel", async (req, res) => {
+  const { order_id } = req.query;
+
+  try {
+    if (order_id) {
+      // delete order rows first (FK constraint)
+      await pool.query(`DELETE FROM e_pos_order_row WHERE order_code = (
+        SELECT order_code FROM e_pos_order WHERE o_id = $1
+      )`, [order_id]);
+
+      // delete order
+      await pool.query(`DELETE FROM e_pos_order WHERE o_id = $1`, [order_id]);
+
+      // console.log(`Order ${order_id} removed due to cancel`);
+    }
+
+    // Redirect back to checkout
     res.redirect(`http://localhost:5173/checkout`);
+  } catch (err) {
+    console.error("Error in /cancel route:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
+
 
 export default router;

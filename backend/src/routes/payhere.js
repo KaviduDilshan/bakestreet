@@ -152,24 +152,8 @@ router.get("/pay", async (req, res) => {
 router.post("/notify", express.urlencoded({ extended: true }), (req, res) => {
   const data = req.body;
 
-//   const md5sig = strtoupper(
-//       md5 (
-//           merchant_id + 
-//           order_id + 
-//           payhere_amount + 
-//           payhere_currency + 
-//         status_code + 
-//         strtoupper(md5(merchant_secret)) 
-//     ) 
-// )
-
   const isValid = verifyMd5Sig(data, PAYHERE_MERCHANT_SECRET);
-
-  // if (isValid && data.status_code === "2") {
-  //   return res.send({ status:true, message: "Payment okey" });
-  // } else {
-  //   return res.send({ status:false, message: "Payment failed" });
-  // }
+ 
   if (!isValid) {
     return res.send({ status: false, message: "Invalid signature" });
   }

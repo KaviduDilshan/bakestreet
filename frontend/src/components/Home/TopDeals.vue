@@ -141,6 +141,7 @@ async function getTopDeals() {
       max_price: item.max_price || 0,
       total_sold: item.total_sold || 0,
       total_count: item.total_count ?? 0,
+      isFavorite: false, // <-- new
     }));
   } catch (err) {
     console.error("Error fetching top deals:", err);
@@ -154,24 +155,21 @@ function goToSingle(card) {
 
 async function addToWishlist(card) {
   try {
-    if (!customerId.value) {
-      alert("Please log in to add items to wishlist.");
-      return;
-    }
-
-    const payload = {
-      item_id: card.item_id,
-      item_prid: card.item_prid || null,
-      customer_id: customerId.value,
-    };
-
-    const res = await api.post("/wishlist", payload);
-
-    if (res.data.success) {
-      console.log("Added to wishlist!");
+    if (card.isFavorite) {
+      // Remove from wishlist
+      await api.delete(`/wishlist/${card.item_id}/${customerId.value}`);
+      card.isFavorite = false;
+    } else {
+      // Add to wishlist
+      await api.post("/wishlist", {
+        item_id: card.item_id,
+        item_prid: card.item_prid || null,
+        customer_id: customerId.value,
+      });
+      card.isFavorite = true;
     }
   } catch (err) {
-    console.error("Error adding to wishlist:", err);
+    console.error("Error updating wishlist:", err);
   }
 }
 
