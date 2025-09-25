@@ -49,20 +49,20 @@
   import { useAuth } from "../../composables/useAuth.js";
 
   const router = useRouter();
-  const { user, logout: authLogout, initAuth } = useAuth();
-  const userInfo = ref({});
+  const { cus_id, logout: authLogout, initAuth } = useAuth();
+  const customer_id = ref({});
 
   const logout = () => {
     authLogout();
   };
 
-  onMounted(() => {
+  onMounted(() => { 
     // Initialize authentication state
     initAuth();
 
     // Set user info from the composable
-    if (user.value) {
-      userInfo.value = user.value;
+    if (cus_id.value) {
+      customer_id.value = cus_id.value;
     } else {
       // If no user data, redirect to login
       router.push("/login");

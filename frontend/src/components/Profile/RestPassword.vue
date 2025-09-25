@@ -109,13 +109,13 @@
 
 <script setup>
   import { ref, onMounted } from "vue";
-  import { useRouter } from "vue-router";
+  // import { useRouter } from "vue-router";
   import { useAuth } from "../../composables/useAuth.js";
   import { customerPassword } from "../../services/customer.js";
   import AccountNav from "../account/AccountNav.vue";
 
-  const router = useRouter();
-  const { user, initAuth, setAuth, logout } = useAuth();
+  // const router = useRouter();
+  const { initAuth, logout } = useAuth();
 
   const isLoading = ref(false);
   const successMessage = ref("");

@@ -120,16 +120,16 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import api from "../../services/api.js";
-import { useAuth } from "../../composables/useAuth.js";
+// import api from "../../services/api.js";
+// import { useAuth } from "../../composables/useAuth.js";
 import { login_register } from "../../services/login_register.js";
 
 const router = useRouter();
-const { setAuth } = useAuth();
+// const { setAuth } = useAuth();
 const { loginUser } = login_register();
-
+// user
 const phoneNumber = ref("");
-const password = ref("");
+const password = ref(""); 
 const isLoading = ref(false);
 const errorMessage = ref("");
 const phoneError = ref("");

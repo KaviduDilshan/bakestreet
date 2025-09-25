@@ -223,11 +223,10 @@ import AccountNav from "../account/AccountNav.vue";
 import api from "../../services/api.js";
 
 const router = useRouter();
-const { user, logout: authLogout, initAuth, getAuthData } = useAuth();
-const userInfo = ref({});
+const { logout: authLogout, initAuth, getAuthData } = useAuth();
+// const userInfo = ref({});
 const orders = ref([])
 const customerId = ref(null);
-
 
 const showModal = ref(false)
 const orderRows = ref([])

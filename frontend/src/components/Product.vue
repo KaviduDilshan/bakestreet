@@ -428,9 +428,6 @@ onMounted(async () => {
   await fetchItems();
   await fetchPrices();
   updateThumbs();
-
-  
-  
 });
 </script>
 
@@ -442,4 +439,3 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
 }
 </style>
-

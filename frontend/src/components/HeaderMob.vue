@@ -28,20 +28,14 @@
 
         <!-- Profile Icon with Authentication State -->
         <div class="relative">
-          <router-link
-            v-if="!isAuth"
-            to="/login"
-          >
+          <router-link v-if="!isAuth" to="/login">
             <img
               src="../assets/img/home/profile-icon.png"
               alt="Profile Icon"
               class="w-[33px] h-[31px] cursor-pointer"
             />
           </router-link>
-          <div
-            v-else
-            class="flex items-center gap-2"
-          >
+          <div v-else class="flex items-center gap-2">
             <router-link to="/profile">
               <img
                 src="../assets/img/home/profile-icon.png"
@@ -101,10 +95,7 @@
           ></span>
         </div>
       </div>
-      <NavMenu
-        :menuOpen="menuOpen"
-        @close-menu="toggleMenu"
-      />
+      <NavMenu :menuOpen="menuOpen" @close-menu="toggleMenu" />
     </div>
 
     <!-- Welcome message -->
@@ -116,76 +107,95 @@
   </section>
 </template>
 <script setup>
-  import { ref, onMounted } from "vue";
-  import NavMenu from "../components/UI/NavMenu.vue";
-  import { useAuth } from "../composables/useAuth.js";
+import { ref, onMounted } from "vue";
+import NavMenu from "../components/UI/NavMenu.vue";
+import { useAuth } from "../composables/useAuth.js";
 
-  const menuOpen = ref(false);
-  const { isAuth, user, logout: authLogout, initAuth } = useAuth();
-  const userInfo = ref({});
+const menuOpen = ref(false);
+const { isAuth, fetchUserById, getAuthData, logout: authLogout, initAuth } = useAuth();
+const userInfo = ref({
+  cus_id: "",
+  user_first_name: "",
+  user_last_name: "",
+});
 
-  // Toggle the full-screen menu
-  const toggleMenu = () => {
-    menuOpen.value = !menuOpen.value;
-  };
+// Toggle the full-screen menu
+const toggleMenu = () => {
+  menuOpen.value = !menuOpen.value;
+};
 
-  const logout = () => {
-    authLogout();
-  };
+const logout = () => {
+  authLogout();
+};
 
-  onMounted(() => {
-    initAuth();
+onMounted(async () => {
+  initAuth();
 
-    // Set user info from the composable
-    if (user.value) {
-      userInfo.value = user.value;
+  const authData = getAuthData();
+  if (authData && authData.customerId) {
+    const usersfetch = await fetchUserById(authData.customerId);
+    try {
+      userInfo.value = {
+          cus_id: authData.customerId || "",
+          user_first_name: usersfetch.user_first_name || "",
+          user_last_name: usersfetch.user_last_name || "",
+        };
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      router.push("/login");
     }
-  });
+  }
+
+  // // Set user info from the composable
+  // if (user.value) {
+  //   userInfo.value = user.value;
+  // }
+});
 </script>
 
 <style scoped>
-  .menu {
-    transition: background-color 0.3s ease;
-  }
+.menu {
+  transition: background-color 0.3s ease;
+}
 
-  .menu:hover {
-    /* background-color: rgba(0, 0, 0, 0.4); */
-  }
+.menu:hover {
+  /* background-color: rgba(0, 0, 0, 0.4); */
+}
 
-  .nav-link {
-    color: white;
-    padding: 0.5rem 1rem;
-    display: inline-block;
-    transform: translateX(-0.5rem);
-    position: relative;
-  }
+.nav-link {
+  color: white;
+  padding: 0.5rem 1rem;
+  display: inline-block;
+  transform: translateX(-0.5rem);
+  position: relative;
+}
 
-  .nav-link::after {
-    content: "";
-    position: absolute;
-    width: 25%;
-    height: 2px;
-    bottom: 0;
-    left: 40%;
-    transform: translateX(-50%);
-    background-color: #ffffff;
-    transform: scaleX(0);
-    transform-origin: center;
-    transition: transform 0.3s ease;
-  }
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 25%;
+  height: 2px;
+  bottom: 0;
+  left: 40%;
+  transform: translateX(-50%);
+  background-color: #ffffff;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
 
-  .nav-link:hover::after {
-    transform: scaleX(1);
-  }
+.nav-link:hover::after {
+  transform: scaleX(1);
+}
 
-  .nav-active {
-    color: #ffffff;
-  }
+.nav-active {
+  color: #ffffff;
+}
 
-  .nav-active::after {
-    transform: scaleX(1);
-  }
-  .nav {
-    transition: background-color 0.3s ease; /* Smooth transition for background color change */
-  }
+.nav-active::after {
+  transform: scaleX(1);
+}
+.nav {
+  transition: background-color 0.3s ease; /* Smooth transition for background color change */
+}
 </style>

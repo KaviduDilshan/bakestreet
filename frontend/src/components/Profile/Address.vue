@@ -87,20 +87,26 @@
   import AccountNav from "../account/AccountNav.vue";
 
   const router = useRouter();
-  const { user, logout: authLogout, initAuth } = useAuth();
-  const userInfo = ref({});
+  const { cus_id, initAuth } = useAuth();
+  const customerId = ref({});
 
-  const logout = () => {
-    authLogout();
-  };
+  // const logout = () => {
+  //   authLogout();
+  // };
 
   onMounted(() => {
     // Initialize authentication state
     initAuth();
 
     // Set user info from the composable
-    if (user.value) {
-      userInfo.value = user.value;
+    // if (user.value) {
+    //   userInfo.value = user.value;
+    // } else {
+    //   // If no user data, redirect to login
+    //   router.push("/login");
+    // }
+    if (cus_id.value) {
+      customerId.value = cus_id.value;
     } else {
       // If no user data, redirect to login
       router.push("/login");

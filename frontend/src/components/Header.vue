@@ -16,11 +16,11 @@
       <!-- Auth -->
       <div v-if="!isAuth" class="flex gap-3">
         <!-- <router-link to="/login"> -->
-          <div @click="goToLogin" class="font-[700] font-quicksand text-text-color text-[15px]">
+          <div @click="goToLogin" class="font-[700] font-quicksand text-text-color text-[15px] ">
             Login
           </div>
-        <!-- </router-link> --><h1>/</h1>
-        <div @click="goToCreateAccount" class="font-[700] font-quicksand text-text-color text-[15px]">Register</div>
+        <!-- </router-link> --><span class="font-[700] font-quicksand text-text-color text-[15px]"> | </span>
+        <div @click="goToCreateAccount" class="font-[700] font-quicksand text-text-color text-[15px] ">Register</div>
         <!-- <router-link
           to="/create-account"
           class="font-[700] font-quicksand text-text-color text-[15px]"
@@ -36,7 +36,7 @@
             class="w-[20px] h-[20px]"
           />
           <span class="font-[700] font-quicksand text-text-color text-[15px]">
-            {{ userInfo.user_first_name || "User" }}
+            {{ userInfo.user_first_name || "Userr" }}
           </span>
         </div>
         <div class="font-[700] font-quicksand text-text-color text-[15px]">|</div>
@@ -382,14 +382,20 @@ import { useRouter } from "vue-router";
 import { encryptId } from "../utils/crypto.js";
 
 const isScrolled = ref(false);
-const { isAuth, user, logout: authLogout, initAuth } = useAuth();
-const userInfo = ref({});
+const { isAuth, fetchUserById, getAuthData, logout: authLogout, initAuth } = useAuth();
+const userInfo = ref({
+  cus_id: "",
+  user_first_name: "",
+  user_last_name: "",
+});
 const router = useRouter();
 const cartCount = ref(0);
 
 // Categories
 const categories = ref([]);
 const selectedMain = ref("");
+// const isExistingCustomer = ref(true);
+
 
 // Search
 const searchQuery = ref("");
@@ -422,6 +428,14 @@ const searchProducts = async () => {
     const res = await api.get("/items/search", {
       params: { q: searchQuery.value },
     });
+
+    // ADD THIS CHECK:
+    if (!res.data || !Array.isArray(res.data)) {
+      searchResults.value = [];
+      showResults.value = false;
+      return;
+    }
+
     searchResults.value = res.data;
     showResults.value = true;
   } catch (err) {
@@ -472,10 +486,28 @@ function logout() {
 }
 
 // Initial load and event listeners
-onMounted(() => {
+onMounted( async () => {
   window.addEventListener("scroll", handleScroll);
   initAuth();
-  if (user.value) userInfo.value = user.value;
+// console.log("Category param:", router.query.category);
+
+  const authData = getAuthData();
+  if (authData && authData.customerId) {
+    const usersfetch = await fetchUserById(authData.customerId);
+    try {
+      userInfo.value = {
+          cus_id: authData.customerId || "",
+          user_first_name: usersfetch.user_first_name || "",
+          user_last_name: usersfetch.user_last_name || "",
+        };
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      router.push("/login");
+    }
+  }
+
+
+  // if (user.value) userInfo.value = user.value;
 
   fetchCategories();
   loadCartCount();

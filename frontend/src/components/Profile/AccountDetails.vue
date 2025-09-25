@@ -198,10 +198,10 @@ import api from "../../services/api.js";
 
 const router = useRouter();
 const {
-  user,
+  // user,
   logout: authLogout,
   initAuth,
-  setAuth,
+  // setAuth,
   getAuthData,
   fetchUserById,
 } = useAuth();

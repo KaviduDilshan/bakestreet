@@ -247,7 +247,7 @@ import { login_register } from "../services/login_register.js";
 import router from "../router/index.js";
 
 const { initAuth, getAuthData, fetchUserById } = useAuth();
-const { loginUser, registerUser } = login_register();
+// const { loginUser, registerUser } = login_register();
 
 const products = ref([]);
 const isExistingCustomer = ref(false);

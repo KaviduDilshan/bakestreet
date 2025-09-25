@@ -2,7 +2,7 @@
   import { RouterLink, RouterView } from "vue-router";
   import { onMounted, onUnmounted } from "vue";
   import { useAuth } from "./composables/useAuth.js";
-  import { shouldRefreshToken, refreshAccessToken } from "./utils/authUtils.js";
+  // import { shouldRefreshToken, refreshAccessToken } from "./utils/authUtils.js";
 
   const { initAuth, needsRefresh, refreshAuth } = useAuth();
 

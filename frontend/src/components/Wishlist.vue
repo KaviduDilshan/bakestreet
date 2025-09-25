@@ -7,7 +7,6 @@
     <!-- Breadcrumb -->
     <p class="text-sm text-gray-500 mb-6">Home / Wishlist</p>
 
-
     <div class="bg-[#F5F5F5] p-4 md:p-6 rounded-md">
       <!-- Table Header -->
       <div class="hidden md:grid grid-cols-4 font-semibold text-center text-sm pb-4">

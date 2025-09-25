@@ -78,7 +78,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import api from "../../services/api.js"; // Make sure this is your Axios instance
+// import api from "../../services/api.js"; // Make sure this is your Axios instance
 import { login_register } from "../../services/login_register.js";
 
 const router = useRouter();

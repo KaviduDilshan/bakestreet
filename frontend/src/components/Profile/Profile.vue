@@ -110,7 +110,7 @@
   import AccountNav from "../account/AccountNav.vue";
 
   const router = useRouter();
-  const { user, logout: authLogout, initAuth , getAuthData, fetchUserById } = useAuth();
+  const { logout: authLogout, initAuth , getAuthData, fetchUserById } = useAuth();
   const userInfo = ref({});
 
   // console.log('Decoded JWT:', { userInfo.customerId });
@@ -131,7 +131,7 @@
     try {
       // Fetch full user details
       const customer = await fetchUserById(authData.customerId);
-      console.log("Fetched Customer:", customer);
+      // console.log("Fetched Customer:", customer);
 
       if (customer) {
         userInfo.value = {

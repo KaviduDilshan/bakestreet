@@ -113,11 +113,11 @@
   import { ref, computed } from "vue";
   import { useRouter } from "vue-router";
   import { customerCreate } from "../../services/customer.js";
-  import { useAuth } from "../../composables/useAuth.js";
+  // import { useAuth } from "../../composables/useAuth.js";
 
   const router = useRouter();
-  const { setAuth } = useAuth();
-
+  // const { setAuth,cus_id } = useAuth();
+// user
   const phoneNumber = ref("");
   const password = ref("");
   const isLoading = ref(false);

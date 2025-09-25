@@ -9,26 +9,27 @@ export function useAuth() {
 
   // Reactive authentication state
   const isAuthenticated = ref(false);
-  const user = ref(null);
   const accessToken = ref(null);
-
+  const cus_id = ref(() => localStorage.getItem("cus_id") || null);
+  // const user = ref(null);
+  
   // Computed property to check if user is authenticated
   const isAuth = computed(() => {
-    return isAuthenticated.value && accessToken.value && user.value;
+    return isAuthenticated.value && accessToken.value && cus_id.value;
   });
 
   // Initialize authentication state from localStorage
   const initAuth = () => {
     const storedIsAuth = localStorage.getItem("isAuth") === "true";
     const storedToken = localStorage.getItem("access_token");
-    const storedUser = localStorage.getItem("user");
-
+    
     isAuthenticated.value = storedIsAuth;
     accessToken.value = storedToken;
-
-    if (storedUser) {
-      user.value = JSON.parse(storedUser);
-    }
+    // const storedUser = localStorage.getItem("user");
+    // const storedUser = localStorage.getItem("cus_id");
+    // if (storedUser) {
+    //   user.value = JSON.parse(storedUser);
+    // }
   };
 
   // Set authentication data
@@ -38,20 +39,25 @@ export function useAuth() {
     localStorage.setItem("access_token", token);
     localStorage.setItem("isAuth", isSuccess);
     
-    const { refresh_token, access_token, user: userData } = authData;
-    localStorage.setItem("user", JSON.stringify(customer)); 
     localStorage.setItem("refresh_token", token);
-    
+    localStorage.setItem("cus_id", customer.customer_id);
+    cus_id.value = customer.customer_id;
     isAuthenticated.value = true; 
     accessToken.value = token; 
-    user.value = userData; 
+    // user.value = userData;
+    const { refresh_token, access_token, user: userData } = authData;
+    // localStorage.setItem("user", JSON.stringify(customer));  
   };
 
   const getAuthData = () => {
     const token = localStorage.getItem("access_token");
-    // if (!token) return null; // no token → not logged in
+    
+    if (!token || token === "undefined" || token === "null") {
+    // no valid token stored
+    return null;
+  }
 
-    // try {
+  try {
     const decoded = jwtDecode(token);
     const { customer_id, phone } = decoded;
 
@@ -60,17 +66,23 @@ export function useAuth() {
       customerId: customer_id,
       phone,
     };
+    } catch (error) {
+    console.error("Invalid JWT:", error.message);
+    return null; // or call clearAuth() here if you want auto-logout
+  }
+  };
+  // if (!token) return null; // no token → not logged in
+    // try {
     // } catch (error) {
     //   console.error("Invalid JWT:", error);
     //   return null;
     // }
-  };
 
   const fetchUserById = async (id) => {
   try {
     // Use full URL path or axios instance with baseURL
     const response = await api.get(`getUser/${id}`);
-    console.log("Fetched User Data:", response.data);
+    // console.log("Fetched User Data:", response.data);
     if (response.data.isSuccess) {
       return response.data.user;
     }
@@ -84,13 +96,15 @@ export function useAuth() {
   // Clear authentication data
   const clearAuth = () => {
     localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
+    // localStorage.removeItem("refresh_token");
+    // localStorage.removeItem("user");
+    localStorage.removeItem("cus_id");
     localStorage.removeItem("isAuth");
 
     isAuthenticated.value = false;
     accessToken.value = null;
-    user.value = null;
+    // user.value = null;
+    cus_id.value = null;
   };
 
   // Refresh authentication token
@@ -152,7 +166,8 @@ export function useAuth() {
   return {
     // State
     isAuthenticated,
-    user,
+    // user,
+    cus_id,
     accessToken,
     isAuth,
 
