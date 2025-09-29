@@ -24,22 +24,65 @@ router.get("/categories", async (req, res) => {
 });
 
 
-// ---------------------- Get all main/sub/sub-sub categories ----------------------
-router.get("/categories-all", async (req, res) => {
+// Get all main categories
+router.get("/categories", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT DISTINCT 
         m.mcategory_id,
-        m.mcategory_name,
-        s1.scategory_id,
-        s1.scategory_name,
-      FROM e_pos_item_maincategory m
-      LEFT JOIN e_pos_item_subcategory_p1 s1
-        ON s1.main_category_id = m.mcategory_id
-      ORDER BY m.mcategory_name, s1.scategory_name
+        m.mcategory_name
+      FROM e_pos_item i
+      JOIN e_pos_item_maincategory m
+        ON i.mcategory_id = m.mcategory_id
+      ORDER BY m.mcategory_name
     `);
 
     res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching main categories:", err);
+    res.status(500).send("Server error");
+  }
+});
+// Get all categories with their subcategories (nested structure)
+router.get("/categories-all", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT
+        m.mcategory_id,
+        m.mcategory_name,
+        s1.scategory_id,
+        s1.scategory_name
+      FROM e_pos_item i
+      LEFT JOIN e_pos_item_maincategory m
+        ON i.mcategory_id = m.mcategory_id
+      LEFT JOIN e_pos_item_subcategory_p1 s1
+        ON i.scategory_id = s1.scategory_id
+        AND i.mcategory_id = m.mcategory_id
+      WHERE m.mcategory_id IS NOT NULL
+      ORDER BY m.mcategory_name, s1.scategory_name
+    `);
+
+    // Structure the data into nested format
+    const categoriesMap = {};
+    
+    result.rows.forEach(row => {
+      if (!categoriesMap[row.mcategory_id]) {
+        categoriesMap[row.mcategory_id] = {
+          mcategory_id: row.mcategory_id,
+          mcategory_name: row.mcategory_name,
+          subcategories: []
+        };
+      }
+      
+      if (row.scategory_id && !categoriesMap[row.mcategory_id].subcategories.some(s => s.scategory_id === row.scategory_id)) {
+        categoriesMap[row.mcategory_id].subcategories.push({
+          scategory_id: row.scategory_id,
+          scategory_name: row.scategory_name
+        });
+      }
+    });
+
+    res.json(Object.values(categoriesMap));
   } catch (err) {
     console.error("Error fetching all categories:", err);
     res.status(500).send("Server error");
@@ -114,6 +157,26 @@ router.get("/shopcategories", async (req, res) => {
   }
 });
 
+// // ---------------------- Get all main/sub/sub-sub categories ----------------------
+// router.get("/categories-all", async (req, res) => {
+//   try {
+//     const result = await pool.query(`
+//       SELECT 
+//         m.mcategory_id,
+//         m.mcategory_name,
+//         s1.scategory_id,
+//         s1.scategory_name,
+//       FROM e_pos_item_maincategory m
+//       LEFT JOIN e_pos_item_subcategory_p1 s1
+//         ON s1.main_category_id = m.mcategory_id
+//       ORDER BY m.mcategory_name, s1.scategory_name
+//     `);
 
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error("Error fetching all categories:", err);
+//     res.status(500).send("Server error");
+//   }
+// });
 
 export default router;

@@ -42,8 +42,8 @@
             @click="goToSingle(card)"
           >
             <!-- Add to wishlist button -->
-            <img
-              src="../../assets/img/home/fav.png"
+           <img
+              :src="card.isFavorite ? favFill : fav"
               alt="Heart Icon"
               class="absolute top-3 right-3 w-[20px] h-[20px] cursor-pointer z-10"
               @click.stop="addToWishlist(card)"
@@ -116,11 +116,11 @@
         >
           <!-- Add to wishlist button -->
           <img
-            src="../../assets/img/home/fav.png"
-            alt="Heart Icon"
-            class="absolute top-3 right-3 w-[20px] h-[20px] cursor-pointer z-10"
-            @click.stop="addToWishlist(card)"
-          />
+          :src="card.isFavorite ? favFill : fav"
+          alt="Heart Icon"
+          class="absolute top-3 right-3 w-[20px] h-[20px] cursor-pointer z-10"
+          @click.stop="addToWishlist(card)"
+        />
 
           <img
             :src="card.item_image_1 || '/placeholder.png'"
@@ -178,6 +178,9 @@ import "swiper/css/navigation";
 import { useRouter } from "vue-router";
 import { encryptId } from "../../utils/crypto.js";
 import { useAuth } from "../../composables/useAuth.js";
+import fav from "../../assets/img/home/fav.png";
+import favFill from "../../assets/img/home/favfill.png";
+
 
 const pros = ref([]);
 const router = useRouter();
@@ -190,10 +193,31 @@ const breakpoints = {
   1024: { slidesPerView: 6, spaceBetween: 20 },
 };
 
-// Function to fetch top deals
+// ✅ Fetch wishlist
+async function getWishlist() {
+  try {
+    if (!customerId.value) return [];
+    const res = await api.get(`/wishlist/${customerId.value}`);
+    if (res.data.success) {
+      return res.data.wishlist.map(item => item.item_id);
+    }
+    return [];
+  } catch (err) {
+    console.error("Error fetching wishlist:", err);
+    return [];
+  }
+}
+
+// ✅ Fetch top deals and merge wishlist
 async function getTopDeals() {
   try {
     const res = await api.get("most-sold-items");
+    let wishlistIds = [];
+
+    if (customerId.value) {
+      wishlistIds = await getWishlist();
+    }
+
     pros.value = res.data.map((item) => ({
       item_id: item.item_id,
       item_prid: item.item_prid,
@@ -203,12 +227,13 @@ async function getTopDeals() {
       max_price: item.max_price || 0,
       total_sold: item.total_sold || 0,
       total_count: item.total_count ?? 0,
-      isFavorite: false, // <-- new
+      isFavorite: wishlistIds.includes(item.item_id), // ✅ set from wishlist
     }));
   } catch (err) {
     console.error("Error fetching top deals:", err);
   }
 }
+
 
 // ✅ Navigate to single product page
 function goToSingle(card) {
@@ -235,16 +260,12 @@ async function addToWishlist(card) {
   }
 }
 
-onMounted(() => {
-  getTopDeals();
-  // const authData = getAuthData();
+// ✅ On mount
+onMounted(async () => {
   const authData = getAuthData();
   if (authData && authData.customerId) {
     customerId.value = authData.customerId;
   }
-  // if (authData && authData.customerId) {
-  //   customerId.value = authData.customerId;
-  // }
-  // console.log("Customer ID:", customerId.value);
+  await getTopDeals();
 });
 </script>

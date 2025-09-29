@@ -24,12 +24,9 @@
             Now you can go to the homepage & discover new products.
         </div>
         <div class="grid justify-center">
-            <router-link
-            to="/">
-              <div class="md:text-[20px] text-[15px] text-center place-items-center font-quicksand  font-[600] uppercase text-[#FFFFFF] bg-secondary rounded-[8px] py-[10px] md:w-[386px] w-[200px]">
-                  Continue Shopping
-              </div>
-            </router-link>
+            <button @click="goHome" class="md:text-[20px] text-[15px] text-center place-items-center font-quicksand  font-[600] uppercase text-[#FFFFFF] bg-secondary rounded-[8px] py-[10px] md:w-[386px] w-[200px]">
+                Continue Shopping
+            </button>
         </div>
         
 
@@ -39,9 +36,16 @@
 
 <script setup>
 import { onMounted } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 onMounted(() => {
   localStorage.removeItem("cart"); 
-  products.value = [];// clear local storage cart
+  // clear local storage cart
 });
+
+const goHome = () => {
+  router.push({ name: "home" }); // or router.push("/")
+};
 </script>

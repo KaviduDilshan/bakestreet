@@ -23,10 +23,10 @@
                         v-model="otpDigits[idx]"
                         @input="handleOtpInput(idx, $event)"
                         @keydown="handleKeydown(idx, $event)"
-                        class="w-full h-full flex flex-col items-center justify-center text-center px-5 outline-none rounded-xl border border-gray-200 text-lg bg-white focus:bg-gray-50 focus:ring-1 ring-blue-700"
+                        :ref="el => otpRefs[idx] = el"
                         type="text"
                         maxlength="1"
-                        :ref="'otpInput' + idx"
+                        class="w-full h-full flex flex-col items-center justify-center text-center px-5 outline-none rounded-xl border border-gray-200 text-lg bg-white focus:bg-gray-50 focus:ring-1 ring-blue-700"
                       />
                     </div>
                   </template>
@@ -80,8 +80,9 @@ const errorMessage = ref("");
 const isLoading = ref(false);
 const isResending = ref(false);
 
-// OTP digits
+// OTP digits and refs
 const otpDigits = reactive(["", "", "", ""]);
+const otpRefs = ref([]);
 
 // Computed properties
 const isOtpComplete = computed(() => otpDigits.every((digit) => digit !== ""));
@@ -103,25 +104,17 @@ const maskedPhoneNumber = computed(() => {
 
 // OTP input focus helpers
 function handleOtpInput(index, event) {
-  const value = event.target.value;
-  if (!/^\d*$/.test(value)) {
-    otpDigits[index] = "";
-    return;
-  }
+  const value = event.target.value.replace(/\D/g, ""); // only digits
   otpDigits[index] = value;
-  if (value && index < 3) {
-    nextTick(() => {
-      const nextInput = document.querySelector(`[ref="otpInput${index + 1}"]`);
-      if (nextInput) nextInput.focus();
-    });
+
+  if (value && index < otpDigits.length - 1) {
+    nextTick(() => otpRefs.value[index + 1]?.focus());
   }
 }
+
 function handleKeydown(index, event) {
   if (event.key === "Backspace" && !otpDigits[index] && index > 0) {
-    nextTick(() => {
-      const prevInput = document.querySelector(`[ref="otpInput${index - 1}"]`);
-      if (prevInput) prevInput.focus();
-    });
+    nextTick(() => otpRefs.value[index - 1]?.focus());
   }
 }
 
@@ -129,17 +122,7 @@ function handleKeydown(index, event) {
 async function handleVerify() {
   if (!isOtpComplete.value) return;
   errorMessage.value = "";
-  
-
-  // let nextPath = localStorage.getItem("nextHiddenPath") || "/profile";
-
-  // if (nextPath === "1") {
-  //   nextPath = "/profile";
-  // } else if (nextPath === "2") {
-  //   nextPath = "/checkout";
-  // }
   isLoading.value = true;
-// alert(nextPath);
 
   try {
     const response = await api.post("/customers/verify-otp", {
@@ -186,9 +169,6 @@ onMounted(() => {
     return;
   }
   signupData.value = JSON.parse(storedData);
-  nextTick(() => {
-    const firstInput = document.querySelector(`[ref="otpInput0"]`);
-    if (firstInput) firstInput.focus();
-  });
+  nextTick(() => otpRefs.value[0]?.focus());
 });
 </script>

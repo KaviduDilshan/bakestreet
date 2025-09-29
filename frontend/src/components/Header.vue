@@ -15,20 +15,15 @@
 
       <!-- Auth -->
       <div v-if="!isAuth" class="flex gap-3">
-        <!-- <router-link to="/login"> -->
-          <div @click="goToLogin" class="font-[700] font-quicksand text-text-color text-[15px] ">
-            Login
-          </div>
-        <!-- </router-link> --><span class="font-[700] font-quicksand text-text-color text-[15px]"> | </span>
-        <div @click="goToCreateAccount" class="font-[700] font-quicksand text-text-color text-[15px] ">Register</div>
-        <!-- <router-link
-          to="/create-account"
-          class="font-[700] font-quicksand text-text-color text-[15px]"
-        > -->
-          
-        <!-- </router-link> -->
+        <div @click="goToLogin" class="font-[700] font-quicksand text-text-color text-[15px] cursor-pointer">
+          Login
         </div>
-        <div v-else class="flex items-center gap-3">
+        <span class="font-[700] font-quicksand text-text-color text-[15px]"> | </span>
+        <div @click="goToCreateAccount" class="font-[700] font-quicksand text-text-color text-[15px] cursor-pointer">
+          Register
+        </div>
+      </div>
+      <div v-else class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <img
             src="../assets/img/home/profile-icon.png"
@@ -36,7 +31,7 @@
             class="w-[20px] h-[20px]"
           />
           <span class="font-[700] font-quicksand text-text-color text-[15px]">
-            {{ userInfo.user_first_name || "Userr" }}
+            {{ userInfo.user_first_name || "User" }}
           </span>
         </div>
         <div class="font-[700] font-quicksand text-text-color text-[15px]">|</div>
@@ -204,27 +199,38 @@
         <div
           class="lg:col-span-12 border-b-[0.43px] border-[#D22245] pt-5"
         ></div>
-        <!-- <div class="lg:col-span-2 flex items-center gap-4">
+        
+        <!-- Department Dropdown with Nested Categories -->
+        <div class="lg:col-span-2 flex items-center gap-4">
           <img
             src="../assets/img/home/menu.png"
             alt="Menu"
             class="w-[18px] h-[16px]"
           />
           <select
-            v-model="selectedMain"
-            @change="onMainChange($event.target.value)"
+            v-model="selectedDept"
+            @change="onDeptChange($event.target.value)"
             class="font-[600] font-quicksand text-text-color text-[15px] bg-transparent outline-none border-none"
           >
             <option value="">Shop by department</option>
-            <option
-              v-for="c in categories"
-              :key="c.mcategory_id"
-              :value="c.mcategory_id"
-            >
-              {{ c.mcategory_name }}
-            </option>
+            <template v-for="cat in categoriesWithSubs" :key="cat.mcategory_id">
+              <option 
+                :value="`main-${cat.mcategory_id}`"
+                style="font-weight: 700;"
+              >
+                {{ cat.mcategory_name }}
+              </option>
+              <option 
+                v-for="sub in cat.subcategories" 
+                :key="sub.scategory_id"
+                :value="`sub-${sub.scategory_id}`"
+              >
+                &nbsp;&nbsp;&nbsp;&nbsp;{{ sub.scategory_name }}
+              </option>
+            </template>
           </select>
-        </div> -->
+        </div>
+
         <div
           class="flex lg:col-span-10 justify-items-center h-[48px] lg:gap-[50px] pt-[13px] ml-1"
         >
@@ -393,9 +399,9 @@ const cartCount = ref(0);
 
 // Categories
 const categories = ref([]);
+const categoriesWithSubs = ref([]);
 const selectedMain = ref("");
-// const isExistingCustomer = ref(true);
-
+const selectedDept = ref("");
 
 // Search
 const searchQuery = ref("");
@@ -417,6 +423,27 @@ const fetchCategories = async () => {
   }
 };
 
+// Fetch categories with subcategories for department dropdown
+const fetchCategoriesWithSubs = async () => {
+  try {
+    const res = await api.get("/categories-all");
+    categoriesWithSubs.value = res.data;
+  } catch (err) {
+    console.error("❌ Failed to fetch categories with subs:", err);
+  }
+};
+
+// Fetch subcategories based on main category
+const fetchSubcategories = async (mainCategoryId) => {
+  try {
+    const res = await api.get(`/categories/${mainCategoryId}/subcategories`);
+    return res.data;
+  } catch (err) {
+    console.error("❌ Failed to fetch subcategories:", err);
+    return [];
+  }
+};
+
 // Product search
 const searchProducts = async () => {
   if (!searchQuery.value.trim()) {
@@ -429,7 +456,6 @@ const searchProducts = async () => {
       params: { q: searchQuery.value },
     });
 
-    // ADD THIS CHECK:
     if (!res.data || !Array.isArray(res.data)) {
       searchResults.value = [];
       showResults.value = false;
@@ -458,19 +484,44 @@ function goToProduct(id) {
   router.push({ name: "single", params: { id: encryptId(id) } });
 }
 
-// Category change
+// Search bar category change
 const onMainChange = (id) => {
-  selectedMain.value = id;
-  if (id) {
-    // Navigate to product page with selected category
-    router.push({
-      name: "product",
-      query: { category: id },
-    });
-  } else {
-    // If "All Categories" selected → go to shop without filter
-    router.push({ name: "product" });
-  }
+  selectedMain.value = id;
+  if (id) {
+    router.push({
+      name: "product",
+      // 👇 ENCRYPT THE ID HERE
+      query: { category: encryptId(id) },
+    });
+  } else {
+    router.push({ name: "product" });
+  }
+};
+
+// Department dropdown change
+const onDeptChange = (value) => {
+  selectedDept.value = value;
+  
+  if (!value) {
+    router.push({ name: "product" });
+    return;
+  }
+  
+  const [type, id] = value.split('-');
+  
+  if (type === 'main') {
+    router.push({
+      name: "product",
+      // 👇 ENCRYPT THE MAIN CATEGORY ID
+      query: { category: encryptId(id) }
+    });
+  } else if (type === 'sub') {
+    router.push({
+      name: "product",
+      // 👇 ENCRYPT THE SUB CATEGORY ID
+      query: { subcategory: encryptId(id) }
+    });
+  }
 };
 
 // Cart counter
@@ -486,36 +537,30 @@ function logout() {
 }
 
 // Initial load and event listeners
-onMounted( async () => {
+onMounted(async () => {
   window.addEventListener("scroll", handleScroll);
   initAuth();
-// console.log("Category param:", router.query.category);
 
   const authData = getAuthData();
   if (authData && authData.customerId) {
     const usersfetch = await fetchUserById(authData.customerId);
     try {
       userInfo.value = {
-          cus_id: authData.customerId || "",
-          user_first_name: usersfetch.user_first_name || "",
-          user_last_name: usersfetch.user_last_name || "",
-        };
+        cus_id: authData.customerId || "",
+        user_first_name: usersfetch.user_first_name || "",
+        user_last_name: usersfetch.user_last_name || "",
+      };
     } catch (error) {
       console.error("Error fetching customer:", error);
       router.push("/login");
     }
   }
 
-
-  // if (user.value) userInfo.value = user.value;
-
   fetchCategories();
+  fetchCategoriesWithSubs();
   loadCartCount();
 
-  // Listen for cart updates
   window.addEventListener("cart-updated", loadCartCount);
-
-  // Multi-tab sync
   window.addEventListener("storage", (e) => {
     if (e.key === "cart") loadCartCount();
   });
@@ -525,6 +570,7 @@ const goToLogin = () => {
   localStorage.setItem("nextHiddenPath", 1);
   router.push("/login");
 };
+
 const goToCreateAccount = () => {
   localStorage.setItem("nextHiddenPath", 1);
   router.push("/create-account");

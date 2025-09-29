@@ -239,24 +239,26 @@ router.get("/success", async (req, res) => {
   const { order_id } = req.query;
 
   try {
-    // 1. Mark the order as paid and return customer_id + order_total
+    await pool.query("BEGIN");
+
+    // 1. Mark the order as paid and return customer_id + order_total + order_code
     const orderResult = await pool.query(
       `UPDATE e_pos_order
        SET order_payment_status = 1
        WHERE o_id = $1
-       RETURNING customer_id, order_total`,
+       RETURNING customer_id, order_total, order_code`,
       [order_id]
     );
 
     if (!orderResult.rows.length) {
+      await pool.query("ROLLBACK");
       return res.status(404).json({ message: "Order not found" });
     }
 
-    const { customer_id, order_total } = orderResult.rows[0];
+    const { customer_id, order_total, order_code } = orderResult.rows[0];
 
     // 2. Calculate points
-       const pointsEarned = order_total / 500; // use floor so no decimals
-      //  const pointsEarned = Math.floor((order_total / 500) * 100) / 100;
+    const pointsEarned = order_total / 500;
 
     // 3. Update customer points
     await pool.query(
@@ -265,16 +267,36 @@ router.get("/success", async (req, res) => {
        WHERE customer_id = $2`,
       [pointsEarned, customer_id]
     );
-    
-    // res.status(200).json({ message: `Added ${pointsEarned} points to customer ID ${customer_id}` });
 
-    // 4. Redirect back to frontend
+    // 4. Fetch ordered items (to update stock)
+    const rowsResult = await pool.query(
+      `SELECT item_prid, or_quantity
+       FROM e_pos_order_row
+       WHERE order_code = $1`,
+      [order_code]
+    );
+
+    // 5. Decrement stock for each product
+    for (const row of rowsResult.rows) {
+      await pool.query(
+        `UPDATE e_pos_item_price
+         SET item_stock = item_stock - $1
+         WHERE item_prid = $2`,
+        [row.or_quantity, row.item_prid]
+      );
+    }
+
+    await pool.query("COMMIT");
+
+    // 6. Redirect back to frontend
     res.redirect(`http://localhost:5173/paymentsuccessfull`);
   } catch (err) {
+    await pool.query("ROLLBACK");
     console.error("Error in /success route:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 router.get("/cancel", async (req, res) => {
